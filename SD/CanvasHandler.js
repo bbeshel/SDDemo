@@ -1,32 +1,40 @@
 /*
  * CanvasHandler.js
- * Author: Ben Beshel
+ * Author: Ben Beshel, Graison Day
  * Handler for IIIF Canvases for T-PEN. 
 */
 
 	var CanvasHandler = function () {
-		// var canvas;
-		// var $canvas;
+		//Container for HTML positioning, allows layering of canvases
+		//Normally, I abstain from inline CSS, but for now it's okay
 		var $container = $("<div id='canvasContainer' style='position: relative;'></div>");
-		
+
+		//The canvas that holds the image
 		var $imgCanvas;
 		var imgCanvas;
 		var imgCx;
-		
+			
+		//The canvas that displays immediate interaction
 		var $dispCanvas;
 		var dispCanvas;
 		var dispCx;
 		
+		//The canvas that loads and allows creation of annotations
 		var $intCanvas;
 		var intCanvas;
 		var intCx;
 		
+		//May not need
+		//Used as a bool for choosing on canvas click to end the path
 		var userEndedPath = false;
 		
+		//Stores all "anchor lists" that are completed
 		var completedPaths = [];
 		
 		//LOOK here for list of SVG after closing a path
+		//Stores HTML complete SVG tags defined by an anchor list path
 		var svgTags = [];
+		//Some styling
 		var svgStrokeColor = "stroke:black;";
 		var svgLineWidth = "line-width:5;";
 		var svgFillStyle = "fill:none;";
@@ -63,9 +71,11 @@
 		};
 		var mPos;
 		
+		//creates a context variable to access member functions
 		var self = this;
 		
 		this.init = function () {
+			
 			
 			var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
 			endPathBtn.on("click", endPath);
@@ -253,10 +263,55 @@
 			svgTags.push(str);
 			var svg = $(str);
 			
+			//TODO: remove, testing only
+			intCx.clearRect(0, 0, intCanvas.width, intCanvas.height);
+			anchorList.clear();
+			
+			readSVGTag(str);
+			
 			console.log(svgTags);
 			console.log(svg.get(0));
+		};
+		
+		var readSVGTag = function (tag) {
+			var $tag = $.parseHTML(tag);
+			// var $tag = Object.create($t);
+			
+			console.log($tag);
+			console.log($tag[0].lastChild.animatedPoints[0]);
+			console.log($tag[0].hasOwnProperty("lastChild"));
+			console.log($tag[0].lastChild.hasOwnProperty("animatedPoints"));
+			
+			//TODO: need to check if properties exist. hasOwnProperty doesnt work, doesnt extend object prototype.
+			// if ($tag[0].hasOwnProperty("lastChild") && $tag[0].lastChild.hasOwnProperty("animatedPoints")) {
+				var pList = $tag[0].lastChild.animatedPoints;
+				console.log("pushing");
+				console.log(pList[0]);
+				console.log(pList[0].x);
+				for (var i = 0; i < pList.length; i++) {
+					anchorList.push(pList[i].x, pList[i].y);
+				}
+			// }
+			drawCompletedPath(anchorList);
+		};
+		
+		//TODO: May need to check if 0 and n points match
+		var drawCompletedPath = function (list) {
+			intCx.beginPath();
+			intCx.moveTo(list.x[0], list.y[0]);
+			for (var i = 1; i < list.length; i++) {
+				intCx.lineTo(list.x[i], list.y[i]);
+			}
+			intCx.stroke();
+			anchorList.clear();
 		};
 		
 		
 		
 	};
+
+	
+	
+	
+	
+	
