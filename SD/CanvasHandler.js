@@ -1,10 +1,27 @@
 /*
+/*
  * CanvasHandler.js
  * Author: Ben Beshel, Graison Day
  * Handler for IIIF Canvases for T-PEN. 
 */
 
 	var CanvasHandler = function () {
+		
+		var CONFIGS = {
+			anno : {
+				strokeStyle : "black",
+				lineWidth : 1
+			},
+			feedback : {
+				strokeStyle : "red",
+				lineWidth : 1,
+				cursorSize : 5
+			}
+		}
+		
+		//Universal canvas mouse position
+		var mPos;
+		
 		//Container for HTML positioning, allows layering of canvases
 		//Normally, I abstain from inline CSS, but for now it's okay
 		var $container = $("<div id='canvasContainer' style='position: relative;'></div>");
@@ -15,9 +32,9 @@
 		var imgCx;
 			
 		//The canvas that displays immediate interaction
-		var $dispCanvas;
-		var dispCanvas;
-		var dispCx;
+		var $fbkCanvas;
+		var fbkCanvas;
+		var fbkCx;
 		
 		//The canvas that loads and allows creation of annotations
 		var $intCanvas;
@@ -69,7 +86,6 @@
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
 			}
 		};
-		var mPos;
 		
 		//creates a context variable to access member functions
 		var self = this;
@@ -81,7 +97,6 @@
 			endPathBtn.on("click", endPath);
 			$("body").append(endPathBtn);
 			//TODO: need to get image dynamically from json
-			//TODO: need an "onload" event, sometimes misses load
 			var img2 = new Image();
 			img2.src = "http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg";
 			
@@ -90,21 +105,20 @@
 			imgCanvas = $imgCanvas.get(0);
 			imgCx = imgCanvas.getContext("2d");
 			//TODO: need to have dynamic parent to append to
+			//TODO: find default ID to attach to, or take as param.
 			$container.append($imgCanvas);
 			
-			$dispCanvas = $("<canvas id='dispCanvas' style='position: absolute;'>");
-			dispCanvas = $dispCanvas.get(0);
-			dispCx = dispCanvas.getContext("2d");
-			$container.append($dispCanvas);
-			
-			dispCx.lineWidth = 1;
-			dispCx.strokeStyle = "red";
+			$fbkCanvas = $("<canvas id='fbkCanvas' style='position: absolute;'>");
+			fbkCanvas = $fbkCanvas.get(0);
+			fbkCx = fbkCanvas.getContext("2d");
+			$container.append($fbkCanvas);
 			
 			$intCanvas = $("<canvas id='intCanvas' style='position: absolute;'>");
 			intCanvas = $intCanvas.get(0);
 			intCx = intCanvas.getContext("2d");
 			$container.append($intCanvas);
 			
+			//TODO: set canvas size based on parsed info, unless missing
 			//LOOK: add variable image tag for onload based on parsed content
 			var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
 			img.on("load", function () {
@@ -112,8 +126,8 @@
 				imgCanvas.width = img.get(0).width;
 				imgCanvas.height = img.get(0).height;
 				imgCx.drawImage(img.get(0), 0, 0);
-				dispCanvas.width = imgCanvas.width;
-				dispCanvas.height = imgCanvas.height;
+				fbkCanvas.width = imgCanvas.width;
+				fbkCanvas.height = imgCanvas.height;
 				intCanvas.width = imgCanvas.width;
 				intCanvas.height = imgCanvas.height;
 			});
@@ -121,30 +135,12 @@
 			
 			
 			$("body").append($container);
-			
-			
-			
-			//TODO: need to get dims from json
-			
-		
-			
-			//TODO: should set this to other imgCanvas
 
-
-			//NOTE: imgCanvas and dispCanvas do not receive mouse events (layering)
-			$imgCanvas.bind("mousemove", function(e) {
-				// moveCallback(e, this);
-			});
-			
-			$dispCanvas.bind("mousemove", function(e) {
-				// console.log(this);
-				
-			});
 			
 			$intCanvas.bind("mousemove", function(e) {
-				// moveCallback(e, this);
 				moveCallback(e);
-				dispCx.clearRect(0, 0, dispCanvas.width, dispCanvas.height);
+				//TODO: consider firing event instead
+				fbkCx.clearRect(0, 0, fbkCanvas.width, fbkCanvas.height);
 				drawIndicator(e);
 			});
 			
@@ -155,8 +151,8 @@
 			});
 			 
 			
+
 			
-				// imgCx.drawImage(img.get(0), 0, 0);
 		};
 		
 		this.getMousePos = function(evt) {
@@ -168,33 +164,34 @@
 		};	
 		
 		var moveCallback = function (e) {
-			// console.log(e);
 			mPos = self.getMousePos(e);
-			// console.log(canvas);
-			// console.log(canvas.mPos);
 		};
 		
 		var drawIndicator = function (e) {
-			dispCx.beginPath();
-			dispCx.strokeStyle="red";
-			dispCx.arc(mPos.x, mPos.y, 5, 0, 360);
-			dispCx.stroke();
+			fbkCx.beginPath();
+			//TODO: make this permanent before calls somehow
+			fbkCx.lineWidth = CONFIGS.feedback.lineWidth;
+			fbkCx.strokeStyle = CONFIGS.feedback.strokeStyle;
+
+			fbkCx.arc(mPos.x, mPos.y, 5, 0, 360);
+			fbkCx.stroke();
 			
 			if (anchorList.length > 0) {
-				dispCx.beginPath();
-				dispCx.moveTo(
+				fbkCx.beginPath();
+				fbkCx.moveTo(
 					anchorList.x[anchorList.length-1], 
 					anchorList.y[anchorList.length-1]
 				);
-				dispCx.lineTo(mPos.x, mPos.y);
-				dispCx.stroke();
+				fbkCx.lineTo(mPos.x, mPos.y);
+				fbkCx.stroke();
 			}
 		};
 		
 		var continuePath = function () {
 			if (anchorList.length > 1) {
 				intCx.beginPath();
-				intCx.strokeStyle="black";
+				intCx.lineWidth = CONFIGS.anno.lineWidth;
+				intCx.strokeStyle = CONFIGS.anno.strokeStyle;
 				intCx.moveTo(
 					anchorList.x[anchorList.length-2], 
 					anchorList.y[anchorList.length-2]
@@ -221,9 +218,7 @@
 					userEndedPath = false;
 					//TODO: implement user closed path
 				} else {
-					// console.log("ending");
 					intCx.beginPath();
-					intCx.strokeStyle = "black";
 					intCx.moveTo(
 						anchorList.x[0],
 						anchorList.y[0]
@@ -275,7 +270,6 @@
 		
 		var readSVGTag = function (tag) {
 			var $tag = $.parseHTML(tag);
-			// var $tag = Object.create($t);
 			
 			console.log($tag);
 			console.log($tag[0].lastChild.animatedPoints[0]);
