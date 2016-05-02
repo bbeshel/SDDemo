@@ -259,10 +259,10 @@
 			var svg = $(str);
 			
 			//TODO: remove, testing only
-			intCx.clearRect(0, 0, intCanvas.width, intCanvas.height);
-			anchorList.clear();
+			// intCx.clearRect(0, 0, intCanvas.width, intCanvas.height);
+			// anchorList.clear();
 			
-			readSVGTag(str);
+			// readSVGTag(str);
 			
 			console.log(svgTags);
 			console.log(svg.get(0));
