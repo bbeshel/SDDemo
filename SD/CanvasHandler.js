@@ -5,6 +5,9 @@
  * Handler for IIIF Canvases for T-PEN. 
 */
 
+//TODO: bind mousevents to document, have canvas check if mouse exists
+//TODO: move canvas order: middle canvas is shapes, top is feedback/interaction
+
 	var CanvasHandler = function () {
 		
 		var CONFIGS = {
@@ -16,7 +19,9 @@
 				strokeStyle : "red",
 				lineWidth : 1,
 				cursorSize : 5
-			}
+			},
+			canvasWidth : 0,
+			canvasHeight : 0
 		}
 		
 		//Universal canvas mouse position
@@ -32,9 +37,9 @@
 		var imgCx;
 			
 		//The canvas that displays immediate interaction
-		var $fbkCanvas;
-		var fbkCanvas;
-		var fbkCx;
+		var $anoCanvas;
+		var anoCanvas;
+		var anoCx;
 		
 		//The canvas that loads and allows creation of annotations
 		var $intCanvas;
@@ -78,6 +83,10 @@
 				this.x = [];
 				this.y = [];
 				this.length = 0;
+				this.leftmost = 100000;
+				this.rightmost = 100000;
+				this.topmost = 0;
+				this.bottommost = 0;
 			},
 			updateBounds: function (px, py) {
 				this.leftmost = px < this.leftmost ? px : this.leftmost;
@@ -108,10 +117,10 @@
 			//TODO: find default ID to attach to, or take as param.
 			$container.append($imgCanvas);
 			
-			$fbkCanvas = $("<canvas id='fbkCanvas' style='position: absolute;'>");
-			fbkCanvas = $fbkCanvas.get(0);
-			fbkCx = fbkCanvas.getContext("2d");
-			$container.append($fbkCanvas);
+			$anoCanvas = $("<canvas id='anoCanvas' style='position: absolute;'>");
+			anoCanvas = $anoCanvas.get(0);
+			anoCx = anoCanvas.getContext("2d");
+			$container.append($anoCanvas);
 			
 			$intCanvas = $("<canvas id='intCanvas' style='position: absolute;'>");
 			intCanvas = $intCanvas.get(0);
@@ -123,13 +132,18 @@
 			var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
 			img.on("load", function () {
 				//TODO: make sure size of canvas conforms to standard
-				imgCanvas.width = img.get(0).width;
-				imgCanvas.height = img.get(0).height;
+				var wid = img.get(0).width;
+				var hgt = img.get(0).height;
+				imgCanvas.width = wid;
+				imgCanvas.height = hgt;
 				imgCx.drawImage(img.get(0), 0, 0);
-				fbkCanvas.width = imgCanvas.width;
-				fbkCanvas.height = imgCanvas.height;
-				intCanvas.width = imgCanvas.width;
-				intCanvas.height = imgCanvas.height;
+				anoCanvas.width = wid;
+				anoCanvas.height = hgt;
+				intCanvas.width = wid;
+				intCanvas.height = hgt;
+				CONFIGS.canvasWidth = wid;
+				CONFIGS.canvasHeight = hgt;
+				
 			});
 			
 			
@@ -137,18 +151,36 @@
 			$("body").append($container);
 
 			
-			$intCanvas.bind("mousemove", function(e) {
+			$(document).on("mousemove", function (e) {
 				moveCallback(e);
+				if (!mPos) { 
+					return; 
+				}
+				console.log("mouse moved");
 				//TODO: consider firing event instead
-				fbkCx.clearRect(0, 0, fbkCanvas.width, fbkCanvas.height);
+				intCx.clearRect(0, 0, anoCanvas.width, anoCanvas.height);
 				drawIndicator(e);
 			});
-			
-			$intCanvas.bind("click", function(e) {
+			$(document).on("click", function (e) {
+				if (!mPos) { 
+					return; 
+				}
 				addAnchor();
 				continuePath();
 				console.log(anchorList);
 			});
+			// $intCanvas.bind("mousemove", function(e) {
+				// moveCallback(e);
+				// //TODO: consider firing event instead
+				// anoCx.clearRect(0, 0, anoCanvas.width, anoCanvas.height);
+				// drawIndicator(e);
+			// });
+			
+			// $intCanvas.bind("click", function(e) {
+				// addAnchor();
+				// continuePath();
+				// console.log(anchorList);
+			// });
 			 
 			
 
@@ -157,50 +189,58 @@
 		
 		this.getMousePos = function(evt) {
 			var rect = imgCanvas.getBoundingClientRect();
-			return {
-				x: Math.floor((evt.clientX - rect.left)/(rect.right-rect.left)*imgCanvas.width),
-				y: Math.floor((evt.clientY - rect.top)/(rect.bottom-rect.top)*imgCanvas.height)
-			};
+			var tempX = Math.floor((evt.clientX - rect.left)/(rect.right-rect.left)*imgCanvas.width);
+			var tempY = Math.floor((evt.clientY - rect.top)/(rect.bottom-rect.top)*imgCanvas.height);
+			
+			if (CONFIGS.canvasWidth > tempX && tempX > -1 && CONFIGS.canvasHeight > tempY && tempY > -1) {
+				return {
+					x: tempX,
+					y: tempY
+				};
+			} else {
+				// return mPos;
+			}
 		};	
 		
 		var moveCallback = function (e) {
 			mPos = self.getMousePos(e);
+			console.log(mPos);
 		};
 		
 		var drawIndicator = function (e) {
-			fbkCx.beginPath();
+			intCx.beginPath();
 			//TODO: make this permanent before calls somehow
-			fbkCx.lineWidth = CONFIGS.feedback.lineWidth;
-			fbkCx.strokeStyle = CONFIGS.feedback.strokeStyle;
+			intCx.lineWidth = CONFIGS.feedback.lineWidth;
+			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
-			fbkCx.arc(mPos.x, mPos.y, 5, 0, 360);
-			fbkCx.stroke();
+			intCx.arc(mPos.x, mPos.y, 5, 0, 360);
+			intCx.stroke();
 			
 			if (anchorList.length > 0) {
-				fbkCx.beginPath();
-				fbkCx.moveTo(
+				intCx.beginPath();
+				intCx.moveTo(
 					anchorList.x[anchorList.length-1], 
 					anchorList.y[anchorList.length-1]
 				);
-				fbkCx.lineTo(mPos.x, mPos.y);
-				fbkCx.stroke();
+				intCx.lineTo(mPos.x, mPos.y);
+				intCx.stroke();
 			}
 		};
 		
 		var continuePath = function () {
 			if (anchorList.length > 1) {
-				intCx.beginPath();
-				intCx.lineWidth = CONFIGS.anno.lineWidth;
-				intCx.strokeStyle = CONFIGS.anno.strokeStyle;
-				intCx.moveTo(
+				anoCx.beginPath();
+				anoCx.lineWidth = CONFIGS.anno.lineWidth;
+				anoCx.strokeStyle = CONFIGS.anno.strokeStyle;
+				anoCx.moveTo(
 					anchorList.x[anchorList.length-2], 
 					anchorList.y[anchorList.length-2]
 				);
-				intCx.lineTo(
+				anoCx.lineTo(
 					anchorList.x[anchorList.length-1], 
 					anchorList.y[anchorList.length-1]
 				);
-				intCx.stroke();
+				anoCx.stroke();
 				
 			}
 		};
@@ -218,19 +258,21 @@
 					userEndedPath = false;
 					//TODO: implement user closed path
 				} else {
-					intCx.beginPath();
-					intCx.moveTo(
+					anoCx.beginPath();
+					anoCx.moveTo(
 						anchorList.x[0],
 						anchorList.y[0]
 					);
-					intCx.lineTo(
+					anoCx.lineTo(
 						anchorList.x[anchorList.length-1],
 						anchorList.y[anchorList.length-1]
 					);
-					intCx.stroke();
+					anoCx.stroke();
 					
 					anchorList.push(anchorList.x[0], anchorList.y[0]);
-					completedPaths.push(anchorList);
+					completedPaths.push(clone(anchorList));
+					console.log(anchorList);
+					console.log(completedPaths);
 					createSVGTag(anchorList);
 					anchorList.clear();
 				}
@@ -291,16 +333,49 @@
 		
 		//TODO: May need to check if 0 and n points match
 		var drawCompletedPath = function (list) {
-			intCx.beginPath();
-			intCx.moveTo(list.x[0], list.y[0]);
+			anoCx.beginPath();
+			anoCx.moveTo(list.x[0], list.y[0]);
 			for (var i = 1; i < list.length; i++) {
-				intCx.lineTo(list.x[i], list.y[i]);
+				anoCx.lineTo(list.x[i], list.y[i]);
 			}
-			intCx.stroke();
+			anoCx.stroke();
 			anchorList.clear();
 		};
 		
-		
+		var clone = function(obj) {
+			var copy;
+
+			// Handle the 3 simple types, and null or undefined
+			if (null == obj || "object" != typeof obj) return obj;
+
+			// Handle Date
+			if (obj instanceof Date) {
+				copy = new Date();
+				copy.setTime(obj.getTime());
+				return copy;
+			}
+
+			// Handle Array
+			if (obj instanceof Array) {
+				copy = [];
+				for (var i = 0, len = obj.length; i < len; i++) {
+					copy[i] = clone(obj[i]);
+				}
+				return copy;
+			}
+
+			// Handle Object
+			if (obj instanceof Object) {
+				copy = {};
+				for (var attr in obj) {
+					if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+				}
+				return copy;
+			}
+
+			throw new Error("Unable to copy obj! Its type isn't supported.");
+
+		};
 		
 	};
 
