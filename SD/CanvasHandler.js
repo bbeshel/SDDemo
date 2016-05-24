@@ -7,6 +7,7 @@
 
 //TODO: bind mousevents to document, have canvas check if mouse exists
 //TODO: move canvas order: middle canvas is shapes, top is feedback/interaction
+//test
 
 	var CanvasHandler = function () {
 		
