@@ -9,6 +9,44 @@
 //TODO: move canvas order: middle canvas is shapes, top is feedback/interaction
 //test
 
+/*
+arrayHandler (ar) {
+	for (var i = 0; i < ar.length; i++) {
+		
+	}
+}
+
+objectHandler () {}
+
+keyHandler () {}
+
+storageHandler() {}
+
+outerLoop (canvas) {
+	type = canvas["@type"];
+	
+	for (var n in IIIFCanvas) {
+		basicCheck(n, type)
+	}
+	
+basicCheck () {
+	if (typeof(n) === "string") {
+			storageHandler(n);
+		}
+		
+		if (typeof(n) === "array" || typeof(n) === Array()) {
+			arrayHandler(n);
+		}
+		
+		etc..
+}
+}
+
+var ar = [];
+var ar2 = new Array();
+
+*/
+
 	var CanvasHandler = function () {
 		
 		var CONFIGS = {
