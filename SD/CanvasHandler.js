@@ -63,6 +63,8 @@ var ar2 = new Array();
 			canvasHeight : 0
 		}
 		
+		var tool = new CanvasHandlerToolbar();
+		
 		//Universal canvas mouse position
 		var mPos;
 		
@@ -139,6 +141,8 @@ var ar2 = new Array();
 		var self = this;
 		
 		this.init = function () {
+			
+			tool.init($container);
 			
 			
 			var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
