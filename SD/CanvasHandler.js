@@ -94,6 +94,8 @@ var ar2 = new Array();
 		//Stores all "anchor lists" that are completed
 		var completedPaths = [];
 		
+		var selectedPaths = [];
+		
 		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
 		var svgTags = [];
@@ -193,24 +195,26 @@ var ar2 = new Array();
 			
 			$("body").append($container);
 
+			$(document).on("canvasIntClear", function () {
+				intCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
+			});
 			
 			$(document).on("mousemove", function (e) {
 				moveCallback(e);
 				if (!mPos) { 
 					return; 
 				}
-				console.log("mouse moved");
+				// console.log("mouse moved");
 				//TODO: consider firing event instead
-				intCx.clearRect(0, 0, anoCanvas.width, anoCanvas.height);
-				drawIndicator(e);
+				tool[tool.MODE].mousemove(e);
+				
+				
 			});
 			$(document).on("click", function (e) {
 				if (!mPos) { 
 					return; 
 				}
-				addAnchor();
-				continuePath();
-				console.log(anchorList);
+				tool[tool.MODE].click(e);
 			});
 			// $intCanvas.bind("mousemove", function(e) {
 				// moveCallback(e);
@@ -247,7 +251,7 @@ var ar2 = new Array();
 		
 		var moveCallback = function (e) {
 			mPos = self.getMousePos(e);
-			console.log(mPos);
+			// console.log(mPos);
 		};
 		
 		var drawIndicator = function (e) {
@@ -418,6 +422,45 @@ var ar2 = new Array();
 
 			throw new Error("Unable to copy obj! Its type isn't supported.");
 
+		};
+		
+		var checkIfInAnnoBounds = function (path, mPosCur) {
+			if (path.leftmost < mPosCur.x && mPosCur.x < path.rightmost && path.topmost < mPosCur.y && mPosCur.y < path.bottommost) {
+				selectedPaths.push(clone(path));
+			};
+		};
+		
+		tool.POLY = Object.create(null);
+		tool.EDIT = Object.create(null);
+		
+		tool.POLY.mousemove = function (e) {
+			$(document).trigger("canvasIntClear");
+			drawIndicator(e);
+		};
+		
+		tool.POLY.click = function (e) {
+			addAnchor();
+			continuePath();
+			console.log(anchorList);
+		};
+		
+		tool.EDIT.click = function (e) {
+			selectedPaths = [];
+			
+			console.log(completedPaths);
+			console.log(tool.MODE);
+			
+			var mPosCur = mPos;
+			
+			for (var i = 0; i < completedPaths.length; i++) {
+				checkIfInAnnoBounds(completedPaths[i], mPosCur);
+			}
+			
+			console.log(selectedPaths);
+		};
+		
+		tool.EDIT.mousemove = function (e) {
+			
 		};
 		
 	};
