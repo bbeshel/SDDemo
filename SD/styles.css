@@ -1,0 +1,16 @@
+.toolContainer {
+	/* overflow: hidden */
+}
+
+#canvasContainer {
+	float: left;
+}
+
+#CHwrapper {
+	overflow: hidden;
+}
+
+.tpenCanvas {
+	float: left;
+	position: absolute;
+}

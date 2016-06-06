@@ -1,19 +1,43 @@
 
 
-var CanvasHandlerToolbar = function () {
+var CanvasHandlerToolbar = function (parentContext) {
+	
+	var chandlerParent = parentContext;
 	
 	var self = this;
 	
-	this.MODE = "POLY";
+	self.MODE = "";
 	
-	var $toolSpan = $("<span class='toolSpan'></span>");
+	var $opModeSelector = $("<select id='opModeSelector'></select>");
+	
+	var $toolDiv = $("<div class='toolDiv'></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
+	
+	
 	this.init = function ($parent) {
-		$parent.append($toolSpan);
+		self.MODE = chandlerParent.MODES[0];
+		for (var n in chandlerParent.MODES) {
+			var $op = $(
+				"<option value='" + chandlerParent.MODES[n] + "'>" 
+				+ chandlerParent.MODE_NAMES[n] + "</option>"
+			);
+			
+			$opModeSelector.append($op);
+			
+		}
 		
-		$toolSpan.append($buttonEdit);
+		
+		
+		$parent.append($toolDiv);
+		
+		$toolDiv.append($buttonEdit);
+		$toolDiv.append($opModeSelector);
+		
+		$opModeSelector.on("change", function () {
+			changeCanvasMode($opModeSelector.val());
+		});
 		
 		$buttonEdit.on("click", function () {
 			changeCanvasMode("EDIT");

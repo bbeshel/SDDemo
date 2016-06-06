@@ -9,45 +9,20 @@
 //TODO: move canvas order: middle canvas is shapes, top is feedback/interaction
 //test
 
-/*
-arrayHandler (ar) {
-	for (var i = 0; i < ar.length; i++) {
-		
-	}
-}
-
-objectHandler () {}
-
-keyHandler () {}
-
-storageHandler() {}
-
-outerLoop (canvas) {
-	type = canvas["@type"];
-	
-	for (var n in IIIFCanvas) {
-		basicCheck(n, type)
-	}
-	
-basicCheck () {
-	if (typeof(n) === "string") {
-			storageHandler(n);
-		}
-		
-		if (typeof(n) === "array" || typeof(n) === Array()) {
-			arrayHandler(n);
-		}
-		
-		etc..
-}
-}
-
-var ar = [];
-var ar2 = new Array();
-
-*/
-
 	var CanvasHandler = function () {
+		
+		//creates a context variable to access member functions
+		var self = this;
+		
+		self.MODES = [
+			"POLY",
+			"EDIT"
+		];
+		
+		self.MODE_NAMES = [
+			"Polygon",
+			"Edit"
+		];
 		
 		var CONFIGS = {
 			anno : {
@@ -63,14 +38,15 @@ var ar2 = new Array();
 			canvasHeight : 0
 		}
 		
-		var tool = new CanvasHandlerToolbar();
+		//Object to house the toolbar and its functions
+		var tool = new CanvasHandlerToolbar(self);
 		
 		//Universal canvas mouse position
 		var mPos;
 		
 		//Container for HTML positioning, allows layering of canvases
 		//Normally, I abstain from inline CSS, but for now it's okay
-		var $container = $("<div id='canvasContainer' style='position: relative;'></div>");
+		var $canvasContainer = $("<div id='canvasContainer'></div>");
 
 		//The canvas that holds the image
 		var $imgCanvas;
@@ -139,13 +115,13 @@ var ar2 = new Array();
 			}
 		};
 		
-		//creates a context variable to access member functions
-		var self = this;
+	
 		
 		this.init = function () {
 			
-			tool.init($container);
 			
+			var $wrapper = $("<div id='CHwrapper'>");
+			$("body").append($wrapper);
 			
 			var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
 			endPathBtn.on("click", endPath);
@@ -155,22 +131,22 @@ var ar2 = new Array();
 			img2.src = "http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg";
 			
 			
-			$imgCanvas = $("<canvas id='imgCanvas' style='position: absolute;'>");
+			$imgCanvas = $("<canvas class='tpenCanvas' id='imgCanvas'>");
 			imgCanvas = $imgCanvas.get(0);
 			imgCx = imgCanvas.getContext("2d");
 			//TODO: need to have dynamic parent to append to
 			//TODO: find default ID to attach to, or take as param.
-			$container.append($imgCanvas);
+			$canvasContainer.append($imgCanvas);
 			
-			$anoCanvas = $("<canvas id='anoCanvas' style='position: absolute;'>");
+			$anoCanvas = $("<canvas class='tpenCanvas' id='anoCanvas'>");
 			anoCanvas = $anoCanvas.get(0);
 			anoCx = anoCanvas.getContext("2d");
-			$container.append($anoCanvas);
+			$canvasContainer.append($anoCanvas);
 			
-			$intCanvas = $("<canvas id='intCanvas' style='position: absolute;'>");
+			$intCanvas = $("<canvas class='tpenCanvas' id='intCanvas'>");
 			intCanvas = $intCanvas.get(0);
 			intCx = intCanvas.getContext("2d");
-			$container.append($intCanvas);
+			$canvasContainer.append($intCanvas);
 			
 			//TODO: set canvas size based on parsed info, unless missing
 			//LOOK: add variable image tag for onload based on parsed content
@@ -188,12 +164,15 @@ var ar2 = new Array();
 				intCanvas.height = hgt;
 				CONFIGS.canvasWidth = wid;
 				CONFIGS.canvasHeight = hgt;
-				
+				$canvasContainer.width(wid);
+				$canvasContainer.height(hgt);
 			});
 			
 			
 			
-			$("body").append($container);
+			// $("body").append($wrapper);
+			$wrapper.append($canvasContainer);
+			tool.init($wrapper);
 
 			$(document).on("canvasIntClear", function () {
 				intCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
@@ -216,22 +195,7 @@ var ar2 = new Array();
 				}
 				tool[tool.MODE].click(e);
 			});
-			// $intCanvas.bind("mousemove", function(e) {
-				// moveCallback(e);
-				// //TODO: consider firing event instead
-				// anoCx.clearRect(0, 0, anoCanvas.width, anoCanvas.height);
-				// drawIndicator(e);
-			// });
-			
-			// $intCanvas.bind("click", function(e) {
-				// addAnchor();
-				// continuePath();
-				// console.log(anchorList);
-			// });
-			 
-			
 
-			
 		};
 		
 		this.getMousePos = function(evt) {
@@ -239,6 +203,8 @@ var ar2 = new Array();
 			var tempX = Math.floor((evt.clientX - rect.left)/(rect.right-rect.left)*imgCanvas.width);
 			var tempY = Math.floor((evt.clientY - rect.top)/(rect.bottom-rect.top)*imgCanvas.height);
 			
+			//checks if mouse event is within canvas bounds
+			//helps with restricting event bindings
 			if (CONFIGS.canvasWidth > tempX && tempX > -1 && CONFIGS.canvasHeight > tempY && tempY > -1) {
 				return {
 					x: tempX,
