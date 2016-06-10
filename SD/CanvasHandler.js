@@ -34,13 +34,18 @@
 				lineWidth : 1,
 				cursorSize : 5
 			},
+			snapZone : 10,
 			canvasWidth : 0,
 			canvasHeight : 0
 		}
 		
 		//Object to house the toolbar and its functions
 		var tool = new CanvasHandlerToolbar(self);
+				
+		var snapToClosePathBool = true;
 		
+		var isInSnapZone = false;
+				
 		//Universal canvas mouse position
 		var mPos;
 		
@@ -220,13 +225,42 @@
 			// console.log(mPos);
 		};
 		
-		var drawIndicator = function (e) {
+		var drawIndicator = function () {
+			var x, y;
+			
+			
+			if (snapToClosePathBool && anchorList.length > 1) {
+				var firstAnchor = { 
+					xMax : anchorList.x[0] + CONFIGS.snapZone, 
+					xMin : anchorList.x[0] - CONFIGS.snapZone, 
+					yMax : anchorList.y[0] + CONFIGS.snapZone, 
+					yMin : anchorList.y[0] - CONFIGS.snapZone 
+					
+				};
+				if (mPos.x < firstAnchor.xMax && mPos.x > firstAnchor.xMin && mPos.y < firstAnchor.yMax && mPos.y > firstAnchor.yMin) {
+					console.log(firstAnchor.xMax);
+					console.log(firstAnchor.xMin);
+					console.log(firstAnchor.yMax);
+					console.log(firstAnchor.yMin);
+					isInSnapZone = true;
+					x = anchorList.x[0];
+					y = anchorList.y[0];
+				}
+			}
+			
+			if (x == null && y == null) {
+				console.log("nulls");
+				isInSnapZone = false;
+				x = mPos.x;
+				y = mPos.y;
+			}
+			
 			intCx.beginPath();
 			//TODO: make this permanent before calls somehow
 			intCx.lineWidth = CONFIGS.feedback.lineWidth;
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
-			intCx.arc(mPos.x, mPos.y, 5, 0, 360);
+			intCx.arc(x, y, 5, 0, 360);
 			intCx.stroke();
 			
 			if (anchorList.length > 0) {
@@ -235,7 +269,7 @@
 					anchorList.x[anchorList.length-1], 
 					anchorList.y[anchorList.length-1]
 				);
-				intCx.lineTo(mPos.x, mPos.y);
+				intCx.lineTo(x, y);
 				intCx.stroke();
 			}
 		};
@@ -396,18 +430,26 @@
 			};
 		};
 		
+		self.changeSnapZone = function (val) {
+			CONFIGS.snapZone = parseInt(val);
+		}
+		
 		tool.POLY = Object.create(null);
 		tool.EDIT = Object.create(null);
 		
 		tool.POLY.mousemove = function (e) {
 			$(document).trigger("canvasIntClear");
-			drawIndicator(e);
+			drawIndicator();
 		};
 		
 		tool.POLY.click = function (e) {
-			addAnchor();
-			continuePath();
-			console.log(anchorList);
+			if (isInSnapZone) {
+				endPath();
+			} else {
+				addAnchor();
+				continuePath();
+				console.log(anchorList);
+			}
 		};
 		
 		tool.EDIT.click = function (e) {

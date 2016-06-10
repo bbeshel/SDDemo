@@ -1,5 +1,7 @@
-.toolContainer {
-	/* overflow: hidden */
+#toolContainer {
+	background-color: #BADA55;
+	overflow: hidden;
+	padding: 5px;
 }
 
 #canvasContainer {
@@ -8,6 +10,10 @@
 
 #CHwrapper {
 	overflow: hidden;
+}
+
+.toolbarItem {
+	width: 100%;
 }
 
 .tpenCanvas {
