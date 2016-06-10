@@ -14,7 +14,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
-	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='25' step='5' value='10'/>");
+	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");
 	
 	
 	

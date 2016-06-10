@@ -45,9 +45,14 @@
 		var snapToClosePathBool = true;
 		
 		var isInSnapZone = false;
+		
+		var mouseIsDown = false;
+		
+		var isInSelectedAnno = false;
 				
 		//Universal canvas mouse position
 		var mPos;
+		var prevmPos;
 		
 		//Container for HTML positioning, allows layering of canvases
 		//Normally, I abstain from inline CSS, but for now it's okay
@@ -58,7 +63,7 @@
 		var imgCanvas;
 		var imgCx;
 			
-		//The canvas that displays immediate interaction
+		//The canvas that displays completed annotations
 		var $anoCanvas;
 		var anoCanvas;
 		var anoCx;
@@ -76,6 +81,8 @@
 		var completedPaths = [];
 		
 		var selectedPaths = [];
+		
+		var selectedPath;
 		
 		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
@@ -117,6 +124,9 @@
 				this.rightmost = px > this.rightmost ? px : this.rightmost;
 				this.topmost = py < this.topmost ? py : this.topmost;
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
+			},
+			getBoundingBoxArea: function () {
+				return (this.rightmost - this.leftmost) * (this.topmost - this.bottommost);
 			}
 		};
 		
@@ -183,6 +193,10 @@
 				intCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
 			});
 			
+			$(document).on("canvasAnoClear", function () {
+				anoCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
+			});
+			
 			$(document).on("mousemove", function (e) {
 				moveCallback(e);
 				if (!mPos) { 
@@ -199,6 +213,14 @@
 					return; 
 				}
 				tool[tool.MODE].click(e);
+			});
+			
+			$(document).on("mousedown", function (e) {
+				mouseIsDown = true;
+			});
+			
+			$(document).on("mouseup", function (e) {
+				mouseIsDown = false;
 			});
 
 		};
@@ -221,6 +243,7 @@
 		};	
 		
 		var moveCallback = function (e) {
+			prevmPos = mPos;
 			mPos = self.getMousePos(e);
 			// console.log(mPos);
 		};
@@ -376,6 +399,7 @@
 				}
 			// }
 			drawCompletedPath(anchorList);
+			anchorList.clear();
 		};
 		
 		//TODO: May need to check if 0 and n points match
@@ -386,7 +410,6 @@
 				anoCx.lineTo(list.x[i], list.y[i]);
 			}
 			anoCx.stroke();
-			anchorList.clear();
 		};
 		
 		var clone = function(obj) {
@@ -427,7 +450,40 @@
 		var checkIfInAnnoBounds = function (path, mPosCur) {
 			if (path.leftmost < mPosCur.x && mPosCur.x < path.rightmost && path.topmost < mPosCur.y && mPosCur.y < path.bottommost) {
 				selectedPaths.push(clone(path));
+				isInSelectedAnno = true;
 			};
+		};
+		
+		var findSmallestSelectedPath = function () {
+			var smallestIndex = 0;
+			for (var i = 0; i < selectedPaths.length; i++) {
+				if (selectedPaths[smallestIndex].getBoundingBoxArea() > selectedPaths[i].getBoundingBoxArea()) {
+					smallestIndex = i;
+				}
+			}
+			return selectedPaths[smallestIndex];
+		};
+		
+		var drawSelectedPath = function () {
+			console.log(selectedPath);
+			intCx.beginPath();
+			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
+			for (var i = 1; i < selectedPath.length; i++) {
+				intCx.lineTo(selectedPath.x[i], selectedPath.y[i]);
+			}
+			intCx.stroke();
+		};
+		
+		var updateSelectedPath = function (md) {
+			console.log(md);
+			console.log(selectedPath);
+			console.log(selectedPath.length);
+			console.log(selectedPath.x[0]);
+			console.log(md.x);
+			for (var i = 0; i < selectedPath.length; i++) {
+				selectedPath.x[i] -= md.x;
+				selectedPath.y[i] -= md.y;	
+			}
 		};
 		
 		self.changeSnapZone = function (val) {
@@ -453,7 +509,8 @@
 		};
 		
 		tool.EDIT.click = function (e) {
-			selectedPaths = [];
+			
+			// selectedPaths = [];
 			
 			console.log(completedPaths);
 			console.log(tool.MODE);
@@ -464,11 +521,25 @@
 				checkIfInAnnoBounds(completedPaths[i], mPosCur);
 			}
 			
+			if (selectedPaths.length > 1) {
+				selectedPath = findSmallestSelectedPath();
+			} else {
+				selectedPath = selectedPaths[0];
+			}
+			
+			drawSelectedPath();
+			
 			console.log(selectedPaths);
+			console.log(selectedPath);
 		};
 		
 		tool.EDIT.mousemove = function (e) {
-			
+			if (mouseIsDown && isInSelectedAnno) {
+				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+				$(document).trigger("canvasIntClear");
+				updateSelectedPath(md);
+				drawSelectedPath();
+			}
 		};
 		
 	};
