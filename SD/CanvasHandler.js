@@ -115,8 +115,8 @@
 				this.y = [];
 				this.length = 0;
 				this.leftmost = 100000;
-				this.rightmost = 100000;
-				this.topmost = 0;
+				this.rightmost = 0;
+				this.topmost = 100000;
 				this.bottommost = 0;
 			},
 			updateBounds: function (px, py) {
@@ -126,7 +126,7 @@
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
 			},
 			getBoundingBoxArea: function () {
-				return (this.rightmost - this.leftmost) * (this.topmost - this.bottommost);
+				return (this.rightmost - this.leftmost) * (this.bottommost - this.topmost);
 			}
 		};
 		
@@ -457,6 +457,8 @@
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
+				console.log(selectedPaths[smallestIndex].getBoundingBoxArea() );
+				console.log(selectedPaths[i].getBoundingBoxArea());
 				if (selectedPaths[smallestIndex].getBoundingBoxArea() > selectedPaths[i].getBoundingBoxArea()) {
 					smallestIndex = i;
 				}
