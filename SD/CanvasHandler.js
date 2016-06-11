@@ -376,6 +376,57 @@
 			throw new Error("Unable to copy obj! Its type isn't supported.");
 
 		};
+
+		//Handles the storage of information
+		var storageHandler = function(unstoredObject){
+			console.log(unstoredObject.toString());
+		}
+		//Checks objects from the canvas 
+		var basicCheck = function(canvasObject){
+			console.log(typeof canvasObject);
+			if (Array.isArray(canvasObject)){
+				for (var n=0; n<canvasObject.length; n++){
+				basicCheck(canvasObject[n]);
+				}
+			}
+			
+			else if (typeof canvasObject === 'string'){
+				storageHandler(canvasObject);
+			}
+
+			else if (typeof canvasObject === 'number'){
+				storageHandler(canvasObject);
+			}
+			else if (typeof canvasObject === 'object'){
+				console.log(canvasObject.length);
+				for (n in canvasObject){
+					if (canvasObject.hasOwnProperty(n)){
+						console.log(canvasObject[n]);
+						basicCheck(n);
+					}
+				}
+			}
+		};
+
+			
+
+
+		//Parses the canvas in order to obtain necessary data for redrawing the canvas
+		//How information will be parsed depends on the type of canvas
+		var canvasParser = function(canvas){
+			//var type = canvas[@type];
+			for (var n in canvas){
+				basicCheck(n);
+			}
+		};
+
+
+		//Some tests, to be deleted later
+		var things = ["dog", "cat"];
+		var anotherThing = { "@context":"hello", "@id":2};
+		var moreThings = [things, "fish", "rabbit", 13, anotherThing];
+		
+		basicCheck(moreThings);
 		
 	};
 

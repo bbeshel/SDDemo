@@ -1,4 +1,5 @@
-{
+
+ var chara = {
   "@context" : "http://www.shared-canvas.org/ns/context.json",
   "@id" : "http://t-pen.org/Tradamus+Simple/manifest.json",
   "@type" : "sc:Manifest",
@@ -559,3 +560,4 @@
     } ]
   } ]
 }
+
