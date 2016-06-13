@@ -16,12 +16,18 @@
 		
 		self.MODES = [
 			"POLY",
-			"EDIT"
+			"EDIT",
+			"RECT",
+			"CIRC",
+			"ANNO",
 		];
 		
 		self.MODE_NAMES = [
 			"Polygon",
-			"Edit"
+			"Edit",
+			"Rectalinear",
+			"Circular",
+			"Annotate"
 		];
 		
 		var CONFIGS = {
@@ -37,7 +43,9 @@
 			snapZone : 10,
 			canvasWidth : 0,
 			canvasHeight : 0
-		}
+		};
+		
+		
 		
 		//Object to house the toolbar and its functions
 		var tool = new CanvasHandlerToolbar(self);
@@ -49,6 +57,8 @@
 		var mouseIsDown = false;
 		
 		var isInSelectedAnno = false;
+		
+		var isCurrentlyEditingPath = false;
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -81,6 +91,8 @@
 		var completedPaths = [];
 		
 		var selectedPaths = [];
+		
+		var selectedPathsIndices = [];
 		
 		var selectedPath;
 		
@@ -189,12 +201,13 @@
 			$wrapper.append($canvasContainer);
 			tool.init($wrapper);
 
-			$(document).on("canvasIntClear", function () {
+			$(document).on("handler_canvasIntClear", function () {
 				intCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
 			});
 			
-			$(document).on("canvasAnoClear", function () {
+			$(document).on("handler_canvasAnoClear", function () {
 				anoCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
+				console.log(CONFIGS.canvasWidth);
 			});
 			
 			$(document).on("mousemove", function (e) {
@@ -221,6 +234,24 @@
 			
 			$(document).on("mouseup", function (e) {
 				mouseIsDown = false;
+			});
+			
+			$(document).keydown(function (e) {
+				switch(e.which) {
+					case 32: //space
+						tool[tool.MODE].space(e);
+					break;
+					case 13:
+						tool[tool.MODE].enter(e);
+				}
+			});
+			
+			$(document).on("handler_changeSnapZone", function (e, data) {
+				changeSnapZone(data);
+			});
+			
+			$(document).on("handler_saveEditChanges", function (e) {
+				saveEditChanges();
 			});
 
 		};
@@ -447,9 +478,10 @@
 
 		};
 		
-		var checkIfInAnnoBounds = function (path, mPosCur) {
+		var checkIfInAnnoBounds = function (path, mPosCur, index) {
 			if (path.leftmost < mPosCur.x && mPosCur.x < path.rightmost && path.topmost < mPosCur.y && mPosCur.y < path.bottommost) {
 				selectedPaths.push(clone(path));
+				selectedPathsIndices.push(index);
 				isInSelectedAnno = true;
 			};
 		};
@@ -457,16 +489,20 @@
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				console.log(selectedPaths[smallestIndex].getBoundingBoxArea() );
+				console.log(selectedPaths[smallestIndex].getBoundingBoxArea());
 				console.log(selectedPaths[i].getBoundingBoxArea());
 				if (selectedPaths[smallestIndex].getBoundingBoxArea() > selectedPaths[i].getBoundingBoxArea()) {
 					smallestIndex = i;
 				}
 			}
+			
+			//TODO: change so that contains all selected paths, not just one
+			selectedPathsIndices = [];
+			selectedPathsIndices.push(smallestIndex);
 			return selectedPaths[smallestIndex];
 		};
 		
-		var drawSelectedPath = function () {
+		var drawSelectedPathIndicator = function () {
 			console.log(selectedPath);
 			intCx.beginPath();
 			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
@@ -474,6 +510,15 @@
 				intCx.lineTo(selectedPath.x[i], selectedPath.y[i]);
 			}
 			intCx.stroke();
+		};
+		
+		var drawPath = function (path) {
+			anoCx.beginPath();
+			anoCx.moveTo(path.x[0], path.y[0]);
+			for (var i = 1; i < path.length; i++) {
+				anoCx.lineTo(path.x[i], path.y[i]);
+			}
+			anoCx.stroke();
 		};
 		
 		var updateSelectedPath = function (md) {
@@ -484,19 +529,66 @@
 			console.log(md.x);
 			for (var i = 0; i < selectedPath.length; i++) {
 				selectedPath.x[i] -= md.x;
-				selectedPath.y[i] -= md.y;	
+				selectedPath.y[i] -= md.y;					
+			}
+			selectedPath.leftmost -= md.x;	
+			selectedPath.rightmost -= md.x;	
+			selectedPath.topmost -= md.y;	
+			selectedPath.bottommost -= md.y;	
+		};
+		
+		var changeSnapZone = function (val) {
+			CONFIGS.snapZone = val;
+		};
+		
+		var saveEditChanges = function () {
+			$(document).trigger("handler_canvasIntClear");
+			console.log("save edit attempt");
+			//use this to remove any edit shape, and then push down to ano
+			//TODO: clear selectedPath variable
+			redrawCompletedPaths();
+			
+			//need to make sure that selectedPaths is all the actual selected obs
+			// for (var i = 0; i < selectedPathsIndices.length; i++) {
+				// drawPath(selectedPaths[i]);
+			// }
+			drawPath(selectedPath);
+			
+			//TODO: change this
+			console.log(selectedPath);
+			console.log(clone(selectedPath));
+			completedPaths[selectedPathsIndices[0]] = clone(selectedPath);
+			
+			selectedPathsIndices = [];
+			selectedPaths = [];
+			isInSelectedAnno = false;
+			isCurrentlyEditingPath = false;
+		};
+		
+		var redrawCompletedPaths = function () {
+			$(document).trigger("handler_canvasAnoClear");
+			var skipPath = false;
+			for (var i = 0; i < completedPaths.length; i++) {
+				for (var j = 0; j < selectedPathsIndices.length; j++) {
+					if (selectedPathsIndices[j] === i) {
+						skipPath = true;
+					}
+				}
+				console.log(skipPath);
+				console.log(completedPaths[i]);
+				if (!skipPath) {
+					drawPath(completedPaths[i]);
+				}
+				skipPath = false;
 			}
 		};
 		
-		self.changeSnapZone = function (val) {
-			CONFIGS.snapZone = parseInt(val);
-		}
 		
 		tool.POLY = Object.create(null);
 		tool.EDIT = Object.create(null);
 		
 		tool.POLY.mousemove = function (e) {
-			$(document).trigger("canvasIntClear");
+			$(document).trigger("handler_canvasIntClear");
 			drawIndicator();
 		};
 		
@@ -520,16 +612,19 @@
 			var mPosCur = mPos;
 			
 			for (var i = 0; i < completedPaths.length; i++) {
-				checkIfInAnnoBounds(completedPaths[i], mPosCur);
+				checkIfInAnnoBounds(completedPaths[i], mPosCur, i);
 			}
 			
 			if (selectedPaths.length > 1) {
 				selectedPath = findSmallestSelectedPath();
-			} else {
+			} else if (selectedPaths.length === 1) {
 				selectedPath = selectedPaths[0];
+			} else {
+				return;
 			}
+			isCurrentlyEditingPath = true;
 			
-			drawSelectedPath();
+			drawSelectedPathIndicator();
 			
 			console.log(selectedPaths);
 			console.log(selectedPath);
@@ -538,10 +633,18 @@
 		tool.EDIT.mousemove = function (e) {
 			if (mouseIsDown && isInSelectedAnno) {
 				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
-				$(document).trigger("canvasIntClear");
+				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
-				drawSelectedPath();
+				drawSelectedPathIndicator();
 			}
+		};
+		
+		tool.EDIT.space = function (e) {
+			//this will be used to cycle through overlapping shapes...
+		};
+		
+		tool.EDIT.enter = function (e) {
+			saveEditChanges();
 		};
 		
 	};
