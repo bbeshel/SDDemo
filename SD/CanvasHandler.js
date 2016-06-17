@@ -92,9 +92,9 @@
 		
 		var selectedPaths = [];
 		
-		var selectedPathsIndices = [];
+		var selectedPathsOfCompletedIndices = [];
 		
-		var selectedPath;
+		var selectedPathsCurIndex;
 		
 		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
@@ -478,10 +478,11 @@
 
 		};
 		
-		var checkIfInAnnoBounds = function (path, mPosCur, index) {
-			if (path.leftmost < mPosCur.x && mPosCur.x < path.rightmost && path.topmost < mPosCur.y && mPosCur.y < path.bottommost) {
-				selectedPaths.push(clone(path));
-				selectedPathsIndices.push(index);
+		var checkIfInAnnoBounds = function (curPath, mPosCur, index) {
+			if (curPath.leftmost < mPosCur.x && mPosCur.x < curPath.rightmost && curPath.topmost < mPosCur.y && mPosCur.y < curPath.bottommost) {
+				console.log(clone(curPath));
+				selectedPaths.push( { path : clone(curPath), compIndex : index } );
+				// selectedPathsOfCompletedIndices.push(index);
 				isInSelectedAnno = true;
 			};
 		};
@@ -489,20 +490,22 @@
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				console.log(selectedPaths[smallestIndex].getBoundingBoxArea());
-				console.log(selectedPaths[i].getBoundingBoxArea());
-				if (selectedPaths[smallestIndex].getBoundingBoxArea() > selectedPaths[i].getBoundingBoxArea()) {
+				console.log(selectedPaths[smallestIndex].path.getBoundingBoxArea());
+				console.log(selectedPaths[i].path.getBoundingBoxArea());
+				if (selectedPaths[smallestIndex].path.getBoundingBoxArea() > selectedPaths[i].path.getBoundingBoxArea()) {
 					smallestIndex = i;
 				}
 			}
 			
 			//TODO: change so that contains all selected paths, not just one
-			selectedPathsIndices = [];
-			selectedPathsIndices.push(smallestIndex);
+			// selectedPathsOfCompletedIndices = [];
+			// selectedPathsOfCompletedIndices.push(smallestIndex);
 			return selectedPaths[smallestIndex];
 		};
 		
 		var drawSelectedPathIndicator = function () {
+			console.log(selectedPaths);
+			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			console.log(selectedPath);
 			intCx.beginPath();
 			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
@@ -522,19 +525,25 @@
 		};
 		
 		var updateSelectedPath = function (md) {
+			var cur = selectedPathsCurIndex;
 			console.log(md);
-			console.log(selectedPath);
-			console.log(selectedPath.length);
-			console.log(selectedPath.x[0]);
 			console.log(md.x);
-			for (var i = 0; i < selectedPath.length; i++) {
-				selectedPath.x[i] -= md.x;
-				selectedPath.y[i] -= md.y;					
+			for (var i = 0; i < selectedPaths[cur].path.length; i++) {
+				selectedPaths[cur].path.x[i] -= md.x;
+				selectedPaths[cur].path.y[i] -= md.y;					
 			}
-			selectedPath.leftmost -= md.x;	
-			selectedPath.rightmost -= md.x;	
-			selectedPath.topmost -= md.y;	
-			selectedPath.bottommost -= md.y;	
+			selectedPaths[cur].path.leftmost -= md.x;	
+			selectedPaths[cur].path.rightmost -= md.x;	
+			selectedPaths[cur].path.topmost -= md.y;	
+			selectedPaths[cur].path.bottommost -= md.y;	
+		};
+		
+		var updateCompletedPaths = function () {
+			var curInd = 0;
+			for (var i = 0; i < selectedPaths.length; i++) {
+				curInd = selectedPaths[i].compIndex;
+				completedPaths[curInd] = clone(selectedPaths[i].path);
+			}
 		};
 		
 		var changeSnapZone = function (val) {
@@ -545,21 +554,26 @@
 			$(document).trigger("handler_canvasIntClear");
 			console.log("save edit attempt");
 			//use this to remove any edit shape, and then push down to ano
-			//TODO: clear selectedPath variable
+			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
+			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
+			
 			redrawCompletedPaths();
 			
 			//need to make sure that selectedPaths is all the actual selected obs
-			// for (var i = 0; i < selectedPathsIndices.length; i++) {
-				// drawPath(selectedPaths[i]);
-			// }
+			for (var i = 0; i < selectedPaths.length; i++) {
+				drawPath(selectedPaths[i].path);
+			}
 			drawPath(selectedPath);
 			
 			//TODO: change this
 			console.log(selectedPath);
 			console.log(clone(selectedPath));
-			completedPaths[selectedPathsIndices[0]] = clone(selectedPath);
 			
-			selectedPathsIndices = [];
+			updateCompletedPaths();
+			// completedPaths[selectedPathCompletedIndex] = clone(selectedPath);
+			
+			selectedPathsCurIndex = 0;
+			// selectedPathsOfCompletedIndices = [];
 			selectedPaths = [];
 			isInSelectedAnno = false;
 			isCurrentlyEditingPath = false;
@@ -569,8 +583,8 @@
 			$(document).trigger("handler_canvasAnoClear");
 			var skipPath = false;
 			for (var i = 0; i < completedPaths.length; i++) {
-				for (var j = 0; j < selectedPathsIndices.length; j++) {
-					if (selectedPathsIndices[j] === i) {
+				for (var j = 0; j < selectedPaths.length; j++) {
+					if (selectedPaths[j].compIndex === i) {
 						skipPath = true;
 					}
 				}
@@ -583,7 +597,35 @@
 			}
 		};
 		
+		//Sorts selected list of shapes by bounding box area
+		var sortSelectedBBAscending = function (list) {
+			var newList = [];
+			var smallestInd = 0;
+			var curInd = 1;
+			var temp;
+			while (list.length > 1) {
+				if (list[smallestInd].path.getBoundingBoxArea() > list[curInd].path.getBoundingBoxArea()) {
+					smallestInd = curInd;
+				}
+				
+				curInd++;
+				
+				if (curInd === list.length) {
+					temp = list.splice(smallestInd, 1);
+					newList.push(temp[0]);
+					smallestInd = 0;
+					curInd = 1;
+				}
+			}
+			//push the final element here
+			temp = list.splice(0, 1);
+			newList.push(temp[0]);
+			
+			selectedPaths = newList;
+			
+		};
 		
+		//initialize modes to allow function expansion
 		tool.POLY = Object.create(null);
 		tool.EDIT = Object.create(null);
 		
@@ -602,36 +644,10 @@
 			}
 		};
 		
-		tool.EDIT.click = function (e) {
-			
-			// selectedPaths = [];
-			
-			console.log(completedPaths);
-			console.log(tool.MODE);
-			
-			var mPosCur = mPos;
-			
-			for (var i = 0; i < completedPaths.length; i++) {
-				checkIfInAnnoBounds(completedPaths[i], mPosCur, i);
-			}
-			
-			if (selectedPaths.length > 1) {
-				selectedPath = findSmallestSelectedPath();
-			} else if (selectedPaths.length === 1) {
-				selectedPath = selectedPaths[0];
-			} else {
-				return;
-			}
-			isCurrentlyEditingPath = true;
-			
-			drawSelectedPathIndicator();
-			
-			console.log(selectedPaths);
-			console.log(selectedPath);
-		};
-		
 		tool.EDIT.mousemove = function (e) {
 			if (mouseIsDown && isInSelectedAnno) {
+				isCurrentlyEditingPath = true;
+				//change from previous mouse move to current on each mousemove
 				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
@@ -639,8 +655,50 @@
 			}
 		};
 		
+		tool.EDIT.click = function (e) {
+			
+			// selectedPaths = [];
+			if (!isCurrentlyEditingPath) {
+				console.log(completedPaths);
+				console.log(tool.MODE);
+				
+				var mPosCur = mPos;
+				
+				for (var i = 0; i < completedPaths.length; i++) {
+					checkIfInAnnoBounds(completedPaths[i], mPosCur, i);
+				}
+				
+				if (selectedPaths.length > 0) {
+					sortSelectedBBAscending(selectedPaths);
+					selectedPathsCurIndex = 0;
+				} else {
+					return;
+				}
+				console.log(selectedPaths);
+				
+				
+				drawSelectedPathIndicator();
+				
+				console.log(selectedPaths);
+			}
+		};
+		
+		
 		tool.EDIT.space = function (e) {
 			//this will be used to cycle through overlapping shapes...
+			
+			if (isCurrentlyEditingPath) {
+				return;
+			}
+			if ( (selectedPathsCurIndex + 1) === selectedPaths.length) {
+				selectedPathsCurIndex = 0;
+			} else {
+				selectedPathsCurIndex++;
+			}
+			$(document).trigger("handler_canvasIntClear");
+			drawSelectedPathIndicator();
+			
+			
 		};
 		
 		tool.EDIT.enter = function (e) {

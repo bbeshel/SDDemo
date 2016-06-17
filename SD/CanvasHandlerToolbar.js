@@ -38,7 +38,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $toolDiv.append($buttonEdit);
 		$toolDiv.append($opModeSelector);
 		$toolDiv.append($snapZoneSlider);
-		$toolDiv.append($saveEditChanges);
+		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
 			changeCanvasMode($opModeSelector.val());
@@ -59,12 +59,41 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// });
 	};
 	
+	var toolbarAppend = function ($el) {
+		$toolDiv.append($el);
+	};
 	
+	//removes all associated tool elements except the opModeSelector
+	var toolbarClear = function () {
+		// console.log($toolDiv.slice);
+		$toolDiv.children().not($opModeSelector).detach();
+	};
+	
+	var toolbarModeInit = function () {
+		toolbarClear();
+		switch (self.MODE) {
+			case "POLY":
+				toolbarAppend($snapZoneSlider);
+			break;
+			case "EDIT":
+				toolbarAppend($saveEditChanges);
+			break;
+			case "RECT":
+			break;
+			case "CIRC":
+			break;
+			case "ANNO":
+			break;
+		}
+	};
 	
 	var changeCanvasMode = function (mode) {
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
-		console.log(self.MODE);
+		toolbarModeInit();
 	};
+	
+	
+	
 	
 };
