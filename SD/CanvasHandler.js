@@ -781,7 +781,7 @@
 			console.log(isAnchorSelected);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
 			if (mouseIsDown && isInSelectedAnno && !isAnchorSelected) {
-				isCurrentlyEditingPath = true;
+				
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
@@ -796,7 +796,7 @@
 		tool.EDIT.click = function (e) {
 			
 			// selectedPaths = [];
-			if (!isCurrentlyEditingPath && !isAnchorSelected) {
+			if (!isCurrentlyEditingPath) {
 				console.log(completedPaths);
 				console.log(tool.MODE);
 				
@@ -812,6 +812,7 @@
 				} else {
 					return;
 				}
+				isCurrentlyEditingPath = true;
 				console.log(selectedPaths);
 				
 				
