@@ -41,7 +41,9 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
-			changeCanvasMode($opModeSelector.val());
+			var val = $opModeSelector.val();
+			$(document).trigger("toolbar_changeOperationMode", [val]);
+			// changeCanvasMode($opModeSelector.val());
 		});
 		
 		$snapZoneSlider.on("change", function () {
@@ -52,6 +54,10 @@ var CanvasHandlerToolbar = function (parentContext) {
 		
 		$saveEditChanges.on("click", function () {
 			$(document).trigger("handler_saveEditChanges");
+		});
+		
+		$(document).on("toolbar_changeOperationMode", function (e, data) {
+			changeCanvasMode(data);
 		});
 		
 		// $buttonEdit.on("click", function () {

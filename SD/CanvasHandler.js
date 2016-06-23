@@ -58,11 +58,13 @@
 		
 		var isInSelectedAnno = false;
 		
+		var isAnchorSelected = false;
+		
 		var isCurrentlyEditingPath = false;
 				
 		//Universal canvas mouse position
 		var mPos;
-		var prevmPos;
+		var prevmPos = { x : -1, y : -1};
 		
 		//Container for HTML positioning, allows layering of canvases
 		//Normally, I abstain from inline CSS, but for now it's okay
@@ -95,6 +97,8 @@
 		var selectedPathsOfCompletedIndices = [];
 		
 		var selectedPathsCurIndex;
+		
+		var selectedPathsAnchorIndex;
 		
 		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
@@ -215,6 +219,8 @@
 				if (!mPos) { 
 					return; 
 				}
+				// console.log(prevmPos);
+				// console.log(mPos);
 				// console.log("mouse moved");
 				//TODO: consider firing event instead
 				tool[tool.MODE].mousemove(e);
@@ -253,6 +259,10 @@
 			$(document).on("handler_saveEditChanges", function (e) {
 				saveEditChanges();
 			});
+			
+			$(document).on("toolbar_changeOperationMode", function () {
+				resetSharedParams();
+			});
 
 		};
 		
@@ -284,18 +294,17 @@
 			
 			
 			if (snapToClosePathBool && anchorList.length > 1) {
-				var firstAnchor = { 
-					xMax : anchorList.x[0] + CONFIGS.snapZone, 
-					xMin : anchorList.x[0] - CONFIGS.snapZone, 
-					yMax : anchorList.y[0] + CONFIGS.snapZone, 
-					yMin : anchorList.y[0] - CONFIGS.snapZone 
+				var anchor = { 
+					x : anchorList.x[0],
+					y : anchorList.y[0]
+					
+					// xMax : anchorList.x[0] + CONFIGS.snapZone, 
+					// xMin : anchorList.x[0] - CONFIGS.snapZone, 
+					// yMax : anchorList.y[0] + CONFIGS.snapZone, 
+					// yMin : anchorList.y[0] - CONFIGS.snapZone 
 					
 				};
-				if (mPos.x < firstAnchor.xMax && mPos.x > firstAnchor.xMin && mPos.y < firstAnchor.yMax && mPos.y > firstAnchor.yMin) {
-					console.log(firstAnchor.xMax);
-					console.log(firstAnchor.xMin);
-					console.log(firstAnchor.yMax);
-					console.log(firstAnchor.yMin);
+				if (checkIfNearAnchor(mPos, anchor)) {
 					isInSnapZone = true;
 					x = anchorList.x[0];
 					y = anchorList.y[0];
@@ -384,6 +393,25 @@
 			anchorList.push(mPos.x, mPos.y);
 		};
 		
+		var checkIfNearAnchor = function (mousePoint, anchor) {
+			var anchorBox = {
+				xMax : anchor.x + CONFIGS.snapZone, 
+				xMin : anchor.x - CONFIGS.snapZone, 
+				yMax : anchor.y + CONFIGS.snapZone, 
+				yMin : anchor.y - CONFIGS.snapZone 
+			};
+			if (
+			mousePoint.x < anchorBox.xMax 
+			&& mousePoint.x > anchorBox.xMin
+			&& mousePoint.y < anchorBox.yMax 
+			&& mousePoint.y > anchorBox.yMin
+			) { 
+				return true;
+			} else {
+				return false;
+			}
+		};
+		
 		var createSVGTag = function (anchors) {
 			//Not sure if we need this width/height
 			var str = svgPrefix +
@@ -441,6 +469,11 @@
 				anoCx.lineTo(list.x[i], list.y[i]);
 			}
 			anoCx.stroke();
+		};
+		
+		//put more shared params here if needed
+		var resetSharedParams = function () {
+			isInSnapZone = false;
 		};
 		
 		var clone = function(obj) {
@@ -575,6 +608,8 @@
 			anoCx.stroke();
 		};
 		
+		var drawSelectedAdjacentEdgesIndicator
+		
 		var updateSelectedPath = function (md) {
 			var cur = selectedPathsCurIndex;
 			console.log(md);
@@ -595,6 +630,32 @@
 				curInd = selectedPaths[i].compIndex;
 				completedPaths[curInd] = clone(selectedPaths[i].path);
 			}
+		};
+		
+		var updateSelectedAnchor = function (md) {
+			selectedPaths[selectedPathsCurIndex].path.x[selectedPathsAnchorIndex] -= md.x;
+			selectedPaths[selectedPathsCurIndex].path.y[selectedPathsAnchorIndex] -= md.y;
+		};
+		
+		var drawSelectedAdjacentEdgesIndicator = function () {
+			var path = selectedPaths[selectedPathsCurIndex].path;
+			var anchInd = selectedPathsAnchorIndex;
+			var lastInd = path.length - 1;
+			
+			intCx.beginPath();
+			if (anchInd === 0) {
+				// var lastA = path.x.length - 1;
+				intCx.moveTo(path.x[lastInd], path.y[lastInd]);
+			} else {
+				intCx.moveTo(path.x[anchInd - 1], path.y[anchInd - 1]);
+			}
+			intCx.lineTo(path.x[anchInd], path.y[anchInd]);
+			if (anchInd === (lastInd)) {
+				intCx.lineTo(path.x[0], path.y[0]);
+			} else {
+				intCx.lineTo(path.x[anchInd + 1], path.y[anchInd + 1]);
+			}
+			intCx.stroke();
 		};
 		
 		var changeSnapZone = function (val) {
@@ -624,10 +685,13 @@
 			// completedPaths[selectedPathCompletedIndex] = clone(selectedPath);
 			
 			selectedPathsCurIndex = 0;
+			selectedPathsAnchorIndex = null;
 			// selectedPathsOfCompletedIndices = [];
 			selectedPaths = [];
 			isInSelectedAnno = false;
 			isCurrentlyEditingPath = false;
+			// isInSnapZone = false;
+			isAnchorSelected = false;
 		};
 		
 		var redrawCompletedPaths = function () {
@@ -676,6 +740,24 @@
 			
 		};
 		
+		var checkSelectedPathAnchors = function () {
+			console.log("checking path anchors");
+			var mousePoint = mPos;
+			var path = selectedPaths[selectedPathsCurIndex].path;
+			for (var i = 0; i < path.length; i++) {
+				var anchor = {
+					x : path.x[i],
+					y : path.y[i]
+				};
+				if (checkIfNearAnchor(mousePoint, anchor)) {
+					// isInSnapZone = true;
+					//TODO: set up list of selected points
+					isAnchorSelected = true;
+					selectedPathsAnchorIndex = i;
+				}
+			}
+		};
+		
 		//initialize modes to allow function expansion
 		tool.POLY = Object.create(null);
 		tool.EDIT = Object.create(null);
@@ -696,20 +778,25 @@
 		};
 		
 		tool.EDIT.mousemove = function (e) {
-			if (mouseIsDown && isInSelectedAnno) {
+			console.log(isAnchorSelected);
+			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+			if (mouseIsDown && isInSelectedAnno && !isAnchorSelected) {
 				isCurrentlyEditingPath = true;
 				//change from previous mouse move to current on each mousemove
-				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
 				drawSelectedPathIndicator();
+			} else if (mouseIsDown && isAnchorSelected) {
+				$(document).trigger("handler_canvasIntClear");
+				updateSelectedAnchor(md);
+				drawSelectedAdjacentEdgesIndicator();
 			}
 		};
 		
 		tool.EDIT.click = function (e) {
 			
 			// selectedPaths = [];
-			if (!isCurrentlyEditingPath) {
+			if (!isCurrentlyEditingPath && !isAnchorSelected) {
 				console.log(completedPaths);
 				console.log(tool.MODE);
 				
@@ -731,6 +818,12 @@
 				drawSelectedPathIndicator();
 				
 				console.log(selectedPaths);
+			} else if (!isAnchorSelected && isCurrentlyEditingPath)  {
+				checkSelectedPathAnchors();
+				if (isAnchorSelected) {
+					$(document).trigger("handler_canvasIntClear");
+					drawSelectedAdjacentEdgesIndicator();
+				}
 			}
 		};
 		
