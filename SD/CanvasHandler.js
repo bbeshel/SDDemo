@@ -60,7 +60,9 @@
 		
 		var isAnchorSelected = false;
 		
-		var isCurrentlyEditingPath = false;
+		var isEditingPath = false;
+		
+		var isShapeMoved = false;
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -125,6 +127,11 @@
 				this.length++;
 				
 				this.updateBounds(px, py);
+			},
+			removeLast: function () {
+				this.x.splice(this.x.length - 1, 1);
+				this.y.splice(this.y.length - 1, 1);
+				this.length--;
 			},
 			clear: function () {
 				this.x = [];
@@ -211,7 +218,7 @@
 			
 			$(document).on("handler_canvasAnoClear", function () {
 				anoCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
-				console.log(CONFIGS.canvasWidth);
+				//console.log(CONFIGS.canvasWidth);
 			});
 			
 			$(document).on("mousemove", function (e) {
@@ -219,9 +226,9 @@
 				if (!mPos) { 
 					return; 
 				}
-				// console.log(prevmPos);
-				// console.log(mPos);
-				// console.log("mouse moved");
+				// //console.log(prevmPos);
+				// //console.log(mPos);
+				// //console.log("mouse moved");
 				//TODO: consider firing event instead
 				tool[tool.MODE].mousemove(e);
 				
@@ -286,7 +293,7 @@
 		var moveCallback = function (e) {
 			prevmPos = mPos;
 			mPos = self.getMousePos(e);
-			// console.log(mPos);
+			// //console.log(mPos);
 		};
 		
 		var drawIndicator = function () {
@@ -312,7 +319,7 @@
 			}
 			
 			if (x == null && y == null) {
-				console.log("nulls");
+				//console.log("nulls");
 				isInSnapZone = false;
 				x = mPos.x;
 				y = mPos.y;
@@ -381,8 +388,8 @@
 					
 					anchorList.push(anchorList.x[0], anchorList.y[0]);
 					completedPaths.push(clone(anchorList));
-					console.log(anchorList);
-					console.log(completedPaths);
+					//console.log(anchorList);
+					//console.log(completedPaths);
 					createSVGTag(anchorList);
 					anchorList.clear();
 				}
@@ -435,24 +442,24 @@
 			
 			// readSVGTag(str);
 			
-			console.log(svgTags);
-			console.log(svg.get(0));
+			//console.log(svgTags);
+			//console.log(svg.get(0));
 		};
 		
 		var readSVGTag = function (tag) {
 			var $tag = $.parseHTML(tag);
 			
-			console.log($tag);
-			console.log($tag[0].lastChild.animatedPoints[0]);
-			console.log($tag[0].hasOwnProperty("lastChild"));
-			console.log($tag[0].lastChild.hasOwnProperty("animatedPoints"));
+			//console.log($tag);
+			//console.log($tag[0].lastChild.animatedPoints[0]);
+			//console.log($tag[0].hasOwnProperty("lastChild"));
+			//console.log($tag[0].lastChild.hasOwnProperty("animatedPoints"));
 			
 			//TODO: need to check if properties exist. hasOwnProperty doesnt work, doesnt extend object prototype.
 			// if ($tag[0].hasOwnProperty("lastChild") && $tag[0].lastChild.hasOwnProperty("animatedPoints")) {
 				var pList = $tag[0].lastChild.animatedPoints;
-				console.log("pushing");
-				console.log(pList[0]);
-				console.log(pList[0].x);
+				//console.log("pushing");
+				//console.log(pList[0]);
+				//console.log(pList[0].x);
 				for (var i = 0; i < pList.length; i++) {
 					anchorList.push(pList[i].x, pList[i].y);
 				}
@@ -513,11 +520,11 @@
 
 		//Handles the storage of information
 		var storageHandler = function(unstoredObject){
-			console.log(unstoredObject.toString());
+			//console.log(unstoredObject.toString());
 		}
 		//Identifies objects from the canvas so tehey can be stored
 		var basicCheck = function(canvasObject){
-			console.log(typeof canvasObject);
+			//console.log(typeof canvasObject);
 			if (Array.isArray(canvasObject)){
 				for (var n=0; n<canvasObject.length; n++){
 				basicCheck(canvasObject[n]);
@@ -532,10 +539,10 @@
 				storageHandler(canvasObject);
 			}
 			else if (typeof canvasObject === 'object'){
-				console.log(canvasObject.length);
+				//console.log(canvasObject.length);
 				for (n in canvasObject){
 					if (canvasObject.hasOwnProperty(n)){
-						console.log(canvasObject[n]);
+						//console.log(canvasObject[n]);
 						basicCheck(n);
 					}
 				}
@@ -564,7 +571,7 @@
 		
 		var checkIfInAnnoBounds = function (curPath, mPosCur, index) {
 			if (curPath.leftmost < mPosCur.x && mPosCur.x < curPath.rightmost && curPath.topmost < mPosCur.y && mPosCur.y < curPath.bottommost) {
-				console.log(clone(curPath));
+				//console.log(clone(curPath));
 				selectedPaths.push( { path : clone(curPath), compIndex : index } );
 				// selectedPathsOfCompletedIndices.push(index);
 				isInSelectedAnno = true;
@@ -574,8 +581,8 @@
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				console.log(selectedPaths[smallestIndex].path.getBoundingBoxArea());
-				console.log(selectedPaths[i].path.getBoundingBoxArea());
+				//console.log(selectedPaths[smallestIndex].path.getBoundingBoxArea());
+				//console.log(selectedPaths[i].path.getBoundingBoxArea());
 				if (selectedPaths[smallestIndex].path.getBoundingBoxArea() > selectedPaths[i].path.getBoundingBoxArea()) {
 					smallestIndex = i;
 				}
@@ -588,9 +595,9 @@
 		};
 		
 		var drawSelectedPathIndicator = function () {
-			console.log(selectedPaths);
+			//console.log(selectedPaths);
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
-			console.log(selectedPath);
+			//console.log(selectedPath);
 			intCx.beginPath();
 			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
 			for (var i = 1; i < selectedPath.length; i++) {
@@ -612,8 +619,8 @@
 		
 		var updateSelectedPath = function (md) {
 			var cur = selectedPathsCurIndex;
-			console.log(md);
-			console.log(md.x);
+			//console.log(md);
+			//console.log(md.x);
 			for (var i = 0; i < selectedPaths[cur].path.length; i++) {
 				selectedPaths[cur].path.x[i] -= md.x;
 				selectedPaths[cur].path.y[i] -= md.y;					
@@ -664,8 +671,14 @@
 		
 		var saveEditChanges = function () {
 			$(document).trigger("handler_canvasIntClear");
-			console.log("save edit attempt");
-			//use this to remove any edit shape, and then push down to ano
+			//console.log("save edit attempt");
+			
+			console.log(selectedPaths[selectedPathsCurIndex].path);
+			if (isAnchorSelected) {
+				addLastAnchor(selectedPaths[selectedPathsCurIndex].path);
+			};
+			console.log(selectedPaths[selectedPathsCurIndex].path);
+			//use this to remove any edit shape, and then push down to ano			
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
 			
@@ -678,8 +691,8 @@
 			drawPath(selectedPath);
 			
 			//TODO: change this
-			console.log(selectedPath);
-			console.log(clone(selectedPath));
+			//console.log(selectedPath);
+			//console.log(clone(selectedPath));
 			
 			updateCompletedPaths();
 			// completedPaths[selectedPathCompletedIndex] = clone(selectedPath);
@@ -689,9 +702,10 @@
 			// selectedPathsOfCompletedIndices = [];
 			selectedPaths = [];
 			isInSelectedAnno = false;
-			isCurrentlyEditingPath = false;
+			isEditingPath = false;
 			// isInSnapZone = false;
 			isAnchorSelected = false;
+			isShapeMoved = false;
 		};
 		
 		var redrawCompletedPaths = function () {
@@ -703,8 +717,8 @@
 						skipPath = true;
 					}
 				}
-				console.log(skipPath);
-				console.log(completedPaths[i]);
+				//console.log(skipPath);
+				//console.log(completedPaths[i]);
 				if (!skipPath) {
 					drawPath(completedPaths[i]);
 				}
@@ -741,7 +755,7 @@
 		};
 		
 		var checkSelectedPathAnchors = function () {
-			console.log("checking path anchors");
+			//console.log("checking path anchors");
 			var mousePoint = mPos;
 			var path = selectedPaths[selectedPathsCurIndex].path;
 			for (var i = 0; i < path.length; i++) {
@@ -753,9 +767,27 @@
 					// isInSnapZone = true;
 					//TODO: set up list of selected points
 					isAnchorSelected = true;
-					selectedPathsAnchorIndex = i;
+					if (i === (path.length - 1)) {
+						selectedPathsAnchorIndex = 0;
+					} else {
+						selectedPathsAnchorIndex = i;
+					}
 				}
 			}
+		};
+		
+		var removeLastAnchorIfDuplicate = function (path) {
+			if (path.x[0] === path.x[path.length - 1]
+			&& path.y[0] === path.y[path.length - 1]) {
+				path.removeLast();
+			}
+
+		};
+		
+		var addLastAnchor = function (path) {
+			var pointX = path.x[0];
+			var pointY = path.y[0];
+			path.push(pointX, pointY);
 		};
 		
 		//initialize modes to allow function expansion
@@ -773,12 +805,12 @@
 			} else {
 				addAnchor();
 				continuePath();
-				console.log(anchorList);
+				//console.log(anchorList);
 			}
 		};
 		
 		tool.EDIT.mousemove = function (e) {
-			console.log(isAnchorSelected);
+			//console.log(isAnchorSelected);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
 			if (mouseIsDown && isInSelectedAnno && !isAnchorSelected) {
 				
@@ -786,19 +818,23 @@
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
 				drawSelectedPathIndicator();
+				isShapeMoved = true;
 			} else if (mouseIsDown && isAnchorSelected) {
+				console.log("EDITING ANCHOR");
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedAnchor(md);
 				drawSelectedAdjacentEdgesIndicator();
 			}
 		};
 		
+		//TODO: probably need to separate these or make better conditions...
 		tool.EDIT.click = function (e) {
 			
 			// selectedPaths = [];
-			if (!isCurrentlyEditingPath) {
-				console.log(completedPaths);
-				console.log(tool.MODE);
+			if (!isEditingPath) {
+				//console.log(completedPaths);
+				//console.log(tool.MODE);
+				console.log("Detected Shape!!");
 				
 				var mPosCur = mPos;
 				
@@ -808,21 +844,32 @@
 				
 				if (selectedPaths.length > 0) {
 					sortSelectedBBAscending(selectedPaths);
+					console.log("Completed Sort.");
+					console.log(selectedPaths);
 					selectedPathsCurIndex = 0;
 				} else {
 					return;
 				}
-				isCurrentlyEditingPath = true;
-				console.log(selectedPaths);
+				isEditingPath = true;
+				//console.log(selectedPaths);
 				
 				
 				drawSelectedPathIndicator();
 				
-				console.log(selectedPaths);
-			} else if (!isAnchorSelected && isCurrentlyEditingPath)  {
+				//console.log(selectedPaths);
+			} else if (!isAnchorSelected && isEditingPath && !isShapeMoved)  {
+				console.log("Attempting to edit ANCHOR!!");
 				checkSelectedPathAnchors();
 				if (isAnchorSelected) {
 					$(document).trigger("handler_canvasIntClear");
+					//We remove the last point so we dont mess with the duplicate
+					//(the duplicate is the first and last point, used for SVG tag)
+					//TODO: maybe only add the duplicate when saving...
+					console.log(selectedPaths[selectedPathsCurIndex].path);
+					console.log(selectedPaths[selectedPathsCurIndex].path.x[0]);
+					removeLastAnchorIfDuplicate(selectedPaths[selectedPathsCurIndex].path);
+					console.log(selectedPaths[selectedPathsCurIndex].path);
+					console.log("Removed last point");
 					drawSelectedAdjacentEdgesIndicator();
 				}
 			}
@@ -832,7 +879,10 @@
 		tool.EDIT.space = function (e) {
 			//this will be used to cycle through overlapping shapes...
 			
-			if (isCurrentlyEditingPath) {
+			if (!isShapeMoved && !isAnchorSelected) {
+				//do nothing
+			} else {
+				console.log("RETURNING");
 				return;
 			}
 			if ( (selectedPathsCurIndex + 1) === selectedPaths.length) {
