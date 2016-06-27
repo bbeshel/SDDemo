@@ -14,6 +14,7 @@
 		//creates a context variable to access member functions
 		var self = this;
 		
+		//The operation modes to select from
 		self.MODES = [
 			"POLY",
 			"EDIT",
@@ -22,6 +23,7 @@
 			"ANNO",
 		];
 		
+		//The names of op modes as they appear to the user
 		self.MODE_NAMES = [
 			"Polygon",
 			"Edit",
@@ -30,6 +32,11 @@
 			"Annotate"
 		];
 		
+		/*
+		The default configuration object.
+		This will be overwritten by attributes of a SharedCanvas JSON-LD object when found, 
+		as well as by user preferences changed live in the toolbar
+		*/
 		var CONFIGS = {
 			anno : {
 				strokeStyle : "black",
@@ -46,35 +53,47 @@
 		};
 		
 		
-		
+		//TODO: consider moving to init
 		//Object to house the toolbar and its functions
 		var tool = new CanvasHandlerToolbar(self);
 				
+		//TODO: implement as feature
+		//Used as a toggle for closing a shape on click
 		var snapToClosePathBool = true;
 		
+		//Bool for checking if the mouse is near an anchor. Based on CONFIGS.snapZone
 		var isInSnapZone = false;
 		
-		var mouseIsDown = false;
+		//Bool for mouse down
+		var isMouseDown = false;
 		
+		//Bool to check if mouse is inside the selected annotation to be edited
 		var isInSelectedAnno = false;
-		
+
+		//Bool telling if an anchor has been clicked and selected
 		var isAnchorSelected = false;
 		
+		//Bool to tell whether an object is currently being edited
 		var isEditingPath = false;
-		
+
+		//Bool to tell if the shape being edited has already been moved
 		var isShapeMoved = false;
 				
 		//Universal canvas mouse position
 		var mPos;
+		
+		//Stores the previous canvas mouse position
 		var prevmPos = { x : -1, y : -1};
 		
 		//Container for HTML positioning, allows layering of canvases
 		//Normally, I abstain from inline CSS, but for now it's okay
 		var $canvasContainer = $("<div id='canvasContainer'></div>");
 
-		//The canvas that holds the image
+		//The canvas that holds the image (jQuery)
 		var $imgCanvas;
+		//(js)
 		var imgCanvas;
+		//(canvas.getContext)
 		var imgCx;
 			
 		//The canvas that displays completed annotations
@@ -91,20 +110,23 @@
 		//Used as a bool for choosing on canvas click to end the path
 		var userEndedPath = false;
 		
-		//Stores all "anchor lists" that are completed
+		//Stores all anchorLists that are completed
 		var completedPaths = [];
 		
+		//Temporary storage for any annotations as anchorLists that are being edited
 		var selectedPaths = [];
 		
-		var selectedPathsOfCompletedIndices = [];
-		
+		//The current index of all detected annotations in edit mode
 		var selectedPathsCurIndex;
 		
+		//The index of the anchor in a specific annotation path that was selected
 		var selectedPathsAnchorIndex;
 		
 		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
 		var svgTags = [];
+		
+		//TODO: move these to CONFIGS
 		//Some styling
 		var svgStrokeColor = "stroke:black;";
 		var svgLineWidth = "line-width:5;";
@@ -112,7 +134,11 @@
 		
 		var svgPrefix = "<svg xmlns=\"http://www.w3.org/2000/svg\""
 		var svgSuffix = "</svg>";
-		
+
+		/*
+		Custom array-like data structure that holds information about a list of points.
+		These points, called anchors, define a path, which will be used as an annotation.
+		*/
 		var anchorList = {
 			x: [],
 			y: [],
@@ -148,6 +174,7 @@
 				this.topmost = py < this.topmost ? py : this.topmost;
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
 			},
+			//TODO: probably absolute value this stuff...
 			getBoundingBoxArea: function () {
 				return (this.rightmost - this.leftmost) * (this.bottommost - this.topmost);
 			}
@@ -157,14 +184,16 @@
 		
 		this.init = function () {
 			
-			
+			//Wraps the <canvas> and the toolbar.
 			var $wrapper = $("<div id='CHwrapper'>");
 			$("body").append($wrapper);
 			
+			//Button to close the current path (deprecated?)
 			var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
 			endPathBtn.on("click", endPath);
 			$("body").append(endPathBtn);
 			//TODO: need to get image dynamically from json
+			//Temporary image used for testing
 			var img2 = new Image();
 			img2.src = "http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg";
 			
@@ -187,15 +216,18 @@
 			$canvasContainer.append($intCanvas);
 			
 			//TODO: set canvas size based on parsed info, unless missing
-			//LOOK: add variable image tag for onload based on parsed content
+			//TODO: add variable image tag for onload based on parsed content
 			var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
 			img.on("load", function () {
 				//TODO: make sure size of canvas conforms to standard
+				//TODO: make sure original data preserved corresponding to JSON canvas size
 				var wid = img.get(0).width;
 				var hgt = img.get(0).height;
 				imgCanvas.width = wid;
 				imgCanvas.height = hgt;
+				
 				imgCx.drawImage(img.get(0), 0, 0);
+				
 				anoCanvas.width = wid;
 				anoCanvas.height = hgt;
 				intCanvas.width = wid;
@@ -208,32 +240,30 @@
 			
 			
 			
-			// $("body").append($wrapper);
 			$wrapper.append($canvasContainer);
 			tool.init($wrapper);
 
+			//Clear the interaction canvas
 			$(document).on("handler_canvasIntClear", function () {
 				intCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
 			});
 			
+			//Clear the annotation canvas
 			$(document).on("handler_canvasAnoClear", function () {
 				anoCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
-				//console.log(CONFIGS.canvasWidth);
 			});
 			
+			//Generic document mousemove catch and handler
 			$(document).on("mousemove", function (e) {
+				//Update the mouse coordinates, etc...
 				moveCallback(e);
 				if (!mPos) { 
 					return; 
 				}
-				// //console.log(prevmPos);
-				// //console.log(mPos);
-				// //console.log("mouse moved");
-				//TODO: consider firing event instead
-				tool[tool.MODE].mousemove(e);
-				
-				
+				tool[tool.MODE].mousemove(e);				
 			});
+			
+			//Generic document click catch and handler
 			$(document).on("click", function (e) {
 				if (!mPos) { 
 					return; 
@@ -241,38 +271,47 @@
 				tool[tool.MODE].click(e);
 			});
 			
+			//Generic document mousedown catch and handler
 			$(document).on("mousedown", function (e) {
-				mouseIsDown = true;
+				isMouseDown = true;
 			});
 			
+			//Generic document mouseup catch and handler
 			$(document).on("mouseup", function (e) {
-				mouseIsDown = false;
+				isMouseDown = false;
 			});
-			
+
+			//TODO: make sure we dont call a function that doesnt exist!
+			//Dynamic document keydown catch and handler
 			$(document).keydown(function (e) {
 				switch(e.which) {
 					case 32: //space
 						tool[tool.MODE].space(e);
 					break;
-					case 13:
+					case 13: //enter
 						tool[tool.MODE].enter(e);
 				}
 			});
 			
+			//Changes the snap zone
 			$(document).on("handler_changeSnapZone", function (e, data) {
 				changeSnapZone(data);
 			});
 			
+			//Calls to save the changes made in edit mode
 			$(document).on("handler_saveEditChanges", function (e) {
 				saveEditChanges();
 			});
 			
+			//Changes the mode of operation on the canvas
 			$(document).on("toolbar_changeOperationMode", function () {
 				resetSharedParams();
 			});
 
 		};
 		
+		//TODO: maybe convert the mouse coordinates to SC coordinates here?
+		//Gets the mouse coordinates on the canvas
 		this.getMousePos = function(evt) {
 			var rect = imgCanvas.getBoundingClientRect();
 			var tempX = Math.floor((evt.clientX - rect.left)/(rect.right-rect.left)*imgCanvas.width);
@@ -286,30 +325,26 @@
 					y: tempY
 				};
 			} else {
-				// return mPos;
+				return null;
 			}
 		};	
-		
+
+		//Called on mousemove
 		var moveCallback = function (e) {
 			prevmPos = mPos;
 			mPos = self.getMousePos(e);
-			// //console.log(mPos);
 		};
 		
+		//TODO: rename this, or expand for each mode...
+		//Draws the mouse pointer indicator
 		var drawIndicator = function () {
 			var x, y;
 			
-			
+			//Checks to see if we should force the indicator to a snap point
 			if (snapToClosePathBool && anchorList.length > 1) {
 				var anchor = { 
 					x : anchorList.x[0],
 					y : anchorList.y[0]
-					
-					// xMax : anchorList.x[0] + CONFIGS.snapZone, 
-					// xMin : anchorList.x[0] - CONFIGS.snapZone, 
-					// yMax : anchorList.y[0] + CONFIGS.snapZone, 
-					// yMin : anchorList.y[0] - CONFIGS.snapZone 
-					
 				};
 				if (checkIfNearAnchor(mPos, anchor)) {
 					isInSnapZone = true;
@@ -318,21 +353,23 @@
 				}
 			}
 			
+			//Not near snap zone, so draw the indicator normally.
 			if (x == null && y == null) {
-				//console.log("nulls");
 				isInSnapZone = false;
 				x = mPos.x;
 				y = mPos.y;
 			}
 			
 			intCx.beginPath();
-			//TODO: make this permanent before calls somehow
+			//TODO: make this permanent before calls 
 			intCx.lineWidth = CONFIGS.feedback.lineWidth;
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
+			//TODO: make the radius editable.
 			intCx.arc(x, y, 5, 0, 360);
 			intCx.stroke();
-			
+
+			//Draw the line from the previous anchor to mPos/snap point
 			if (anchorList.length > 0) {
 				intCx.beginPath();
 				intCx.moveTo(
@@ -344,6 +381,7 @@
 			}
 		};
 		
+		//Draws the next line in the path being created
 		var continuePath = function () {
 			if (anchorList.length > 1) {
 				anoCx.beginPath();
@@ -371,42 +409,40 @@
 		var endPath = function () {
 			
 			if (anchorList.length > 2) {
-				if (userEndedPath) {
-					userEndedPath = false;
-					//TODO: implement user closed path
-				} else {
-					anoCx.beginPath();
-					anoCx.moveTo(
-						anchorList.x[0],
-						anchorList.y[0]
-					);
-					anoCx.lineTo(
-						anchorList.x[anchorList.length-1],
-						anchorList.y[anchorList.length-1]
-					);
-					anoCx.stroke();
-					
-					anchorList.push(anchorList.x[0], anchorList.y[0]);
-					completedPaths.push(clone(anchorList));
-					//console.log(anchorList);
-					//console.log(completedPaths);
-					createSVGTag(anchorList);
-					anchorList.clear();
-				}
+				anoCx.beginPath();
+				anoCx.moveTo(
+					anchorList.x[0],
+					anchorList.y[0]
+				);
+				anoCx.lineTo(
+					anchorList.x[anchorList.length-1],
+					anchorList.y[anchorList.length-1]
+				);
+				anoCx.stroke();
+				
+				anchorList.push(anchorList.x[0], anchorList.y[0]);
+				completedPaths.push(clone(anchorList));
+				createSVGTag(anchorList);
+				anchorList.clear();
+			
 			}
 		}
 		
+		//TODO: possibly pass in a set of points from which an event was triggered...
 		var addAnchor = function () {
 			anchorList.push(mPos.x, mPos.y);
 		};
-		
+
+		//Checks to see if we are near an anchor
 		var checkIfNearAnchor = function (mousePoint, anchor) {
+			//Bounding box around the anchor
 			var anchorBox = {
 				xMax : anchor.x + CONFIGS.snapZone, 
 				xMin : anchor.x - CONFIGS.snapZone, 
 				yMax : anchor.y + CONFIGS.snapZone, 
 				yMin : anchor.y - CONFIGS.snapZone 
 			};
+			//If the mouse pos when this function was called is in the bounding box...
 			if (
 			mousePoint.x < anchorBox.xMax 
 			&& mousePoint.x > anchorBox.xMin
@@ -421,6 +457,8 @@
 		
 		var createSVGTag = function (anchors) {
 			//Not sure if we need this width/height
+			//TODO: possibly set width/height to SC dims
+			//TODO: convert points to relative width/height of SC
 			var str = svgPrefix +
 				"width=\"" + anchors.rightmost + "\" " + 
 				"height=\"" + anchors.bottommost + "\"" +
@@ -436,53 +474,31 @@
 			svgTags.push(str);
 			var svg = $(str);
 			
-			//TODO: remove, testing only
-			// intCx.clearRect(0, 0, intCanvas.width, intCanvas.height);
-			// anchorList.clear();
-			
-			// readSVGTag(str);
-			
-			//console.log(svgTags);
-			//console.log(svg.get(0));
+			console.log(svgTags);
+			console.log(svg.get(0));
 		};
 		
 		var readSVGTag = function (tag) {
 			var $tag = $.parseHTML(tag);
-			
-			//console.log($tag);
-			//console.log($tag[0].lastChild.animatedPoints[0]);
-			//console.log($tag[0].hasOwnProperty("lastChild"));
-			//console.log($tag[0].lastChild.hasOwnProperty("animatedPoints"));
-			
+						
 			//TODO: need to check if properties exist. hasOwnProperty doesnt work, doesnt extend object prototype.
 			// if ($tag[0].hasOwnProperty("lastChild") && $tag[0].lastChild.hasOwnProperty("animatedPoints")) {
 				var pList = $tag[0].lastChild.animatedPoints;
-				//console.log("pushing");
-				//console.log(pList[0]);
-				//console.log(pList[0].x);
 				for (var i = 0; i < pList.length; i++) {
 					anchorList.push(pList[i].x, pList[i].y);
 				}
 			// }
-			drawCompletedPath(anchorList);
+			drawPath(anchorList);
 			anchorList.clear();
 		};
 		
-		//TODO: May need to check if 0 and n points match
-		var drawCompletedPath = function (list) {
-			anoCx.beginPath();
-			anoCx.moveTo(list.x[0], list.y[0]);
-			for (var i = 1; i < list.length; i++) {
-				anoCx.lineTo(list.x[i], list.y[i]);
-			}
-			anoCx.stroke();
-		};
-		
 		//put more shared params here if needed
+		//TODO: find a more elegant way of doing this...
 		var resetSharedParams = function () {
 			isInSnapZone = false;
 		};
-		
+
+		//Deep clones an object (special thanks to stackoverflow community)
 		var clone = function(obj) {
 			var copy;
 
@@ -569,35 +585,29 @@
 		
 		basicCheck(moreThings);*/
 		
+		//Checks if the user clicked inside a completed annotation during edit mode (selected a shaoe)
 		var checkIfInAnnoBounds = function (curPath, mPosCur, index) {
 			if (curPath.leftmost < mPosCur.x && mPosCur.x < curPath.rightmost && curPath.topmost < mPosCur.y && mPosCur.y < curPath.bottommost) {
-				//console.log(clone(curPath));
 				selectedPaths.push( { path : clone(curPath), compIndex : index } );
-				// selectedPathsOfCompletedIndices.push(index);
 				isInSelectedAnno = true;
 			};
 		};
-		
+
+		//Finds the smallest path that was selected in edit mode
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				//console.log(selectedPaths[smallestIndex].path.getBoundingBoxArea());
-				//console.log(selectedPaths[i].path.getBoundingBoxArea());
 				if (selectedPaths[smallestIndex].path.getBoundingBoxArea() > selectedPaths[i].path.getBoundingBoxArea()) {
 					smallestIndex = i;
 				}
 			}
 			
-			//TODO: change so that contains all selected paths, not just one
-			// selectedPathsOfCompletedIndices = [];
-			// selectedPathsOfCompletedIndices.push(smallestIndex);
 			return selectedPaths[smallestIndex];
 		};
 		
+		//Redraws the completed shape on the interaction canvas for editing
 		var drawSelectedPathIndicator = function () {
-			//console.log(selectedPaths);
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
-			//console.log(selectedPath);
 			intCx.beginPath();
 			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
 			for (var i = 1; i < selectedPath.length; i++) {
@@ -605,7 +615,8 @@
 			}
 			intCx.stroke();
 		};
-		
+			
+		//Draws a given path in its entirety
 		var drawPath = function (path) {
 			anoCx.beginPath();
 			anoCx.moveTo(path.x[0], path.y[0]);
@@ -615,12 +626,9 @@
 			anoCx.stroke();
 		};
 		
-		var drawSelectedAdjacentEdgesIndicator
-		
+		//Updates all the anchors on an edited path, and their bounding box
 		var updateSelectedPath = function (md) {
 			var cur = selectedPathsCurIndex;
-			//console.log(md);
-			//console.log(md.x);
 			for (var i = 0; i < selectedPaths[cur].path.length; i++) {
 				selectedPaths[cur].path.x[i] -= md.x;
 				selectedPaths[cur].path.y[i] -= md.y;					
@@ -630,7 +638,8 @@
 			selectedPaths[cur].path.topmost -= md.y;	
 			selectedPaths[cur].path.bottommost -= md.y;	
 		};
-		
+
+		//Updates the completedPaths based on the corresponding selectedPaths
 		var updateCompletedPaths = function () {
 			var curInd = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
@@ -639,11 +648,13 @@
 			}
 		};
 		
+		//Updates a single anchor in selectedPaths
 		var updateSelectedAnchor = function (md) {
 			selectedPaths[selectedPathsCurIndex].path.x[selectedPathsAnchorIndex] -= md.x;
 			selectedPaths[selectedPathsCurIndex].path.y[selectedPathsAnchorIndex] -= md.y;
 		};
-		
+
+		//Draws the connecting edges to an anchor that is selected
 		var drawSelectedAdjacentEdgesIndicator = function () {
 			var path = selectedPaths[selectedPathsCurIndex].path;
 			var anchInd = selectedPathsAnchorIndex;
@@ -664,50 +675,41 @@
 			}
 			intCx.stroke();
 		};
-		
+
+		//Changes the snapZone in CONFIGS
 		var changeSnapZone = function (val) {
 			CONFIGS.snapZone = val;
 		};
 		
+		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {
 			$(document).trigger("handler_canvasIntClear");
-			//console.log("save edit attempt");
 			
-			console.log(selectedPaths[selectedPathsCurIndex].path);
 			if (isAnchorSelected) {
 				addLastAnchor(selectedPaths[selectedPathsCurIndex].path);
 			};
-			console.log(selectedPaths[selectedPathsCurIndex].path);
-			//use this to remove any edit shape, and then push down to ano			
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
 			
 			redrawCompletedPaths();
 			
-			//need to make sure that selectedPaths is all the actual selected obs
 			for (var i = 0; i < selectedPaths.length; i++) {
 				drawPath(selectedPaths[i].path);
 			}
 			drawPath(selectedPath);
 			
-			//TODO: change this
-			//console.log(selectedPath);
-			//console.log(clone(selectedPath));
-			
 			updateCompletedPaths();
-			// completedPaths[selectedPathCompletedIndex] = clone(selectedPath);
 			
 			selectedPathsCurIndex = 0;
 			selectedPathsAnchorIndex = null;
-			// selectedPathsOfCompletedIndices = [];
 			selectedPaths = [];
 			isInSelectedAnno = false;
 			isEditingPath = false;
-			// isInSnapZone = false;
 			isAnchorSelected = false;
 			isShapeMoved = false;
 		};
-		
+
+		//Redraw all the shapes that were not edited
 		var redrawCompletedPaths = function () {
 			$(document).trigger("handler_canvasAnoClear");
 			var skipPath = false;
@@ -717,8 +719,6 @@
 						skipPath = true;
 					}
 				}
-				//console.log(skipPath);
-				//console.log(completedPaths[i]);
 				if (!skipPath) {
 					drawPath(completedPaths[i]);
 				}
@@ -753,9 +753,9 @@
 			selectedPaths = newList;
 			
 		};
-		
+
+		//Check if the next click was near an anchor's snapZone in a selected path
 		var checkSelectedPathAnchors = function () {
-			//console.log("checking path anchors");
 			var mousePoint = mPos;
 			var path = selectedPaths[selectedPathsCurIndex].path;
 			for (var i = 0; i < path.length; i++) {
@@ -764,8 +764,8 @@
 					y : path.y[i]
 				};
 				if (checkIfNearAnchor(mousePoint, anchor)) {
-					// isInSnapZone = true;
-					//TODO: set up list of selected points
+
+				//TODO: set up list of selected points
 					isAnchorSelected = true;
 					if (i === (path.length - 1)) {
 						selectedPathsAnchorIndex = 0;
@@ -775,7 +775,8 @@
 				}
 			}
 		};
-		
+
+		//Removes the last point so we dont start editing it if it is a duplicate of first
 		var removeLastAnchorIfDuplicate = function (path) {
 			if (path.x[0] === path.x[path.length - 1]
 			&& path.y[0] === path.y[path.length - 1]) {
@@ -784,6 +785,7 @@
 
 		};
 		
+		//Add the last anchor as a duplicate of the first one for SVG
 		var addLastAnchor = function (path) {
 			var pointX = path.x[0];
 			var pointY = path.y[0];
@@ -812,14 +814,14 @@
 		tool.EDIT.mousemove = function (e) {
 			//console.log(isAnchorSelected);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
-			if (mouseIsDown && isInSelectedAnno && !isAnchorSelected) {
+			if (isMouseDown && isInSelectedAnno && !isAnchorSelected) {
 				
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
 				drawSelectedPathIndicator();
 				isShapeMoved = true;
-			} else if (mouseIsDown && isAnchorSelected) {
+			} else if (isMouseDown && isAnchorSelected) {
 				console.log("EDITING ANCHOR");
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedAnchor(md);
