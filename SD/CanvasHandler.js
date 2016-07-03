@@ -32,6 +32,18 @@
 			"Annotate"
 		];
 		
+		var dummyAnnotation = {
+			"@id" : null,
+			"@type" : "oa:Annotation",
+			"motivation" : "sc:Painting",
+			"resource" : {
+				"@type" : "cnt:ContentAsText",
+				"cnt:chars" : ""
+			},
+			"on" : null,
+			"otherContent" : []
+		};
+		
 		/*
 		The default configuration object.
 		This will be overwritten by attributes of a SharedCanvas JSON-LD object when found, 
@@ -453,6 +465,11 @@
 			} else {
 				return false;
 			}
+		};
+		
+		//TODO: fill this in for display...
+		var displayJSON = function () {
+			
 		};
 		
 		var createSVGTag = function (anchors) {

@@ -10,6 +10,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem'></select>");
 	
+	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
+	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
@@ -38,6 +40,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $toolDiv.append($buttonEdit);
 		$toolDiv.append($opModeSelector);
 		$toolDiv.append($snapZoneSlider);
+		$toolDiv.append($jsonDisplay);
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
@@ -72,7 +75,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	//removes all associated tool elements except the opModeSelector
 	var toolbarClear = function () {
 		// console.log($toolDiv.slice);
-		$toolDiv.children().not($opModeSelector).detach();
+		$toolDiv.children().not($opModeSelector).not($jsonDisplay).detach();
 	};
 	
 	var toolbarModeInit = function () {
