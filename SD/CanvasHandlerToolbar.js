@@ -50,7 +50,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		});
 		
 		$snapZoneSlider.on("change", function () {
-			chandlerParent.changeSnapZone($snapZoneSlider.val());
+			// chandlerParent.changeSnapZone($snapZoneSlider.val());
 			var val = parseInt($snapZoneSlider.val());
 			$(document).trigger("handler_changeSnapZone", [val]);
 		});
