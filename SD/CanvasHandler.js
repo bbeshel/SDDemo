@@ -61,13 +61,21 @@
 			},
 			snapZone : 10,
 			canvasWidth : 0,
-			canvasHeight : 0
+			canvasHeight : 0,
+			canvasImageSrc : null,
+			annotationList : null,
+			canvasData : null
 		};
+		
+		var annoListData;
+		var canvasData;
 		
 		
 		//TODO: consider moving to init
 		//Object to house the toolbar and its functions
 		var tool = new CanvasHandlerToolbar(self);
+		
+		var parser = new JSONparser(self);
 				
 		//TODO: implement as feature
 		//Used as a toggle for closing a shape on click
@@ -90,6 +98,8 @@
 
 		//Bool to tell if the shape being edited has already been moved
 		var isShapeMoved = false;
+		
+		var canvasDimensionsChecks = 0;
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -194,16 +204,17 @@
 		
 	
 		
-		this.init = function () {
+		this.init = function (data) {
 			
+		
 			//Wraps the <canvas> and the toolbar.
 			var $wrapper = $("<div id='CHwrapper'>");
 			$("body").append($wrapper);
 			
 			//Button to close the current path (deprecated?)
-			var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
-			endPathBtn.on("click", endPath);
-			$("body").append(endPathBtn);
+			// var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
+			// endPathBtn.on("click", endPath);
+			// $("body").append(endPathBtn);
 			//TODO: need to get image dynamically from json
 			//Temporary image used for testing
 			var img2 = new Image();
@@ -227,28 +238,7 @@
 			intCx = intCanvas.getContext("2d");
 			$canvasContainer.append($intCanvas);
 			
-			//TODO: set canvas size based on parsed info, unless missing
-			//TODO: add variable image tag for onload based on parsed content
-			var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
-			img.on("load", function () {
-				//TODO: make sure size of canvas conforms to standard
-				//TODO: make sure original data preserved corresponding to JSON canvas size
-				var wid = img.get(0).width;
-				var hgt = img.get(0).height;
-				imgCanvas.width = wid;
-				imgCanvas.height = hgt;
-				
-				imgCx.drawImage(img.get(0), 0, 0);
-				
-				anoCanvas.width = wid;
-				anoCanvas.height = hgt;
-				intCanvas.width = wid;
-				intCanvas.height = hgt;
-				CONFIGS.canvasWidth = wid;
-				CONFIGS.canvasHeight = hgt;
-				$canvasContainer.width(wid);
-				$canvasContainer.height(hgt);
-			});
+			
 			
 			
 			
@@ -263,6 +253,45 @@
 			//Clear the annotation canvas
 			$(document).on("handler_canvasAnoClear", function () {
 				anoCx.clearRect(0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
+			});
+			
+				//Changes the snap zone
+			$(document).on("handler_changeSnapZone", function (e, data) {
+				changeSnapZone(data);
+			});
+			
+			//Calls to save the changes made in edit mode
+			$(document).on("handler_saveEditChanges", function (e) {
+				saveEditChanges();
+			});
+			
+			$(document).on("parser_annoDataRetrieved", function (e, data) {
+				console.log("FOUND ANNO DATA");
+				console.log(data);
+				CONFIGS.annotationList = jQuery.extend(true, {}, data);
+				drawAnnotationsToCanvas();
+			});
+			
+			$(document).on("parser_canvasDataRetrieved", function (e, data) {
+				console.log("FOUND CANVAS DATA");
+				console.log(data);
+				CONFIGS.canvasData = jQuery.extend(true, {}, data);
+				setCanvasDimensions();
+			});
+			
+			$(document).on("parser_imageDataRetrieved", function (e, data) {
+				console.log("FOUND IMAGE DATA");
+				console.log(data);
+				//TODO: set canvas size based on parsed info, unless missing
+				//TODO: add variable image tag for onload based on parsed content
+				// var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
+				CONFIGS.canvasImageSrc = data[0].src;
+				drawAndResizeImage();
+			});
+			
+			//Changes the mode of operation on the canvas
+			$(document).on("toolbar_changeOperationMode", function () {
+				resetSharedParams();
 			});
 			
 			//Generic document mousemove catch and handler
@@ -305,21 +334,97 @@
 				}
 			});
 			
-			//Changes the snap zone
-			$(document).on("handler_changeSnapZone", function (e, data) {
-				changeSnapZone(data);
-			});
 			
-			//Calls to save the changes made in edit mode
-			$(document).on("handler_saveEditChanges", function (e) {
-				saveEditChanges();
-			});
 			
-			//Changes the mode of operation on the canvas
-			$(document).on("toolbar_changeOperationMode", function () {
-				resetSharedParams();
-			});
+			
+			
+			parser.requestData(data);
+			
+			
+			
+		};
 
+		var onAllDataRetrieved = function () {
+			setCanvasDimensions();
+			drawAndResizeImage();
+			// drawAllCanvasAnnotations();
+		};
+		
+		var setCanvasDimensions = function () {
+			if (CONFIGS.canvasData != null) {
+				var wid = CONFIGS.canvasData.width;
+				var hgt = CONFIGS.canvasData.height;
+				CONFIGS.canvasWidth = wid;
+				CONFIGS.canvasHeight = hgt;
+			} else if (CONFIGS.canvasWidth !== 0) {
+				var wid = CONFIGS.canvasWidth;
+				var hgt = CONFIGS.canvasHeight;
+			} else {
+				return;
+			}
+				
+			
+		
+			imgCanvas.width = wid;
+			imgCanvas.height = hgt;
+			
+			// imgCx.drawImage(canvImg.get(0), 0, 0);
+			
+			anoCanvas.width = wid;
+			anoCanvas.height = hgt;
+			intCanvas.width = wid;
+			intCanvas.height = hgt;
+			$canvasContainer.width(wid);
+			$canvasContainer.height(hgt);
+		};
+		
+		var drawAndResizeImage = function () {
+			var canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
+			canvImg.on("load", function () {
+				//TODO: make sure size of canvas conforms to standard
+				//TODO: make sure original data preserved corresponding to JSON canvas size
+				canvImg.width = CONFIGS.canvasWidth;
+				canvImg.height = CONFIGS.canvasHeight;
+				imgCx.drawImage(canvImg.get(0), 0, 0);
+				
+			});
+		};
+		
+		var drawAnnotationsToCanvas = function () {
+			if (CONFIGS.canvasWidth === 0 && CONFIGS.canvasHeight === 0) {
+				setTimeout(function () {
+					//TODO: remove this, we should always have canvas dimensions?
+					canvasDimensionsChecks++;
+					if (canvasDimensionsChecks === 5) {
+						CONFIGS.canvasWidth = 1000;
+						CONFIGS.canvasHeight = 1000;
+						setCanvasDimensions();
+					}
+					console.log("Warning: attempt to draw annotations failed. Reason: No canvas dimensions. Retrying...");
+					drawAnnotationsToCanvas();
+				}, 5000);
+			} else if (CONFIGS.annotationList == null) {
+				console.log("Warning: attempt to draw annotations failed. Reason: annotationList was null");
+			} else {
+				var annos = CONFIGS.annotationList.resources;
+				var ind;
+				console.log(annos);
+				
+				for (var i = 0; i < annos.length; i++) {
+					if (annos[i].hasOwnProperty("on")) {
+						var ind = annos[i]["on"].search("xywh");
+						if (ind > -1) {
+							drawRectalinearAnnotation(annos[i]);
+						}
+					}
+				}
+			}
+		};	
+		
+		var drawRectalinearAnnotation = function (anno) {
+			var ind = anno["on"].search("xywh");
+			var dimString = anno["on"].substr( (ind + 5));
+			console.log(dimString);
 		};
 		
 		//TODO: maybe convert the mouse coordinates to SC coordinates here?
