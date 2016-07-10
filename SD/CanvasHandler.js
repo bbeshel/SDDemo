@@ -516,7 +516,7 @@
 		var moveCallback = function (e) {
 			prevmPos = mPos;
 			mPos = self.getMousePos(e);
-			console.log(mPos);
+			// console.log(mPos);
 		};
 		
 		//TODO: rename this, or expand for each mode...

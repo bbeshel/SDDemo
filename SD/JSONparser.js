@@ -49,7 +49,13 @@
 			if (canvasObject["@type"] === "dctypes:Image") {
 				//console.log(canvasObject);
 				//console.log(canvasObject["resource"]["@id"]);
-				handleURL(canvasObject["resource"]["@id"]);
+				
+				//here we are detecting for two different acceptable models for images
+				if (canvasObject.hasOwnProperty("resource")) {
+					handleURL(canvasObject["resource"]["@id"]);
+				} else if (canvasObject.hasOwnProperty("@id")) {
+					handleURL(canvasObject["@id"]);
+				}
 			}
 			//console.log(canvasObject);
 			for (n in canvasObject){
@@ -271,8 +277,9 @@
 			$img.on("load", function () {
 				//TODO: display the image somewhere here!
 				console.log("attempt image append");
-				$curImg.append(img);
-				canvImg = img;
+				// $curImg.append(img);
+				canvImg = $img;
+				console.log (canvImg);
 				$(document).trigger("parser_imageDataRetrieved", [canvImg]);
 				
 			})
