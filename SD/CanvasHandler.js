@@ -100,6 +100,8 @@
 		var isShapeMoved = false;
 		
 		var canvasDimensionsChecks = 0;
+		
+		var dimensionCheckLimit = 1;
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -395,7 +397,7 @@
 				setTimeout(function () {
 					//TODO: remove this, we should always have canvas dimensions?
 					canvasDimensionsChecks++;
-					if (canvasDimensionsChecks === 5) {
+					if (canvasDimensionsChecks === dimensionCheckLimit) {
 						CONFIGS.canvasWidth = 1000;
 						CONFIGS.canvasHeight = 1000;
 						setCanvasDimensions();
@@ -411,20 +413,84 @@
 				console.log(annos);
 				
 				for (var i = 0; i < annos.length; i++) {
-					if (annos[i].hasOwnProperty("on")) {
+					//TODO: check the dimensions of the SVG to match canvas
+					if (annos[i].hasOwnProperty("resource") && annos[i]["resource"].hasOwnProperty("selector")) {						
+						console.log("SVG");
+						if (annos[i]["resource"]["selector"].hasOwnProperty("chars")) {
+							var svgString = annos[i]["resource"]["selector"]["chars"];
+							drawSVGAnnotation(svgString);
+							
+						}
+					} else if (annos[i].hasOwnProperty("on")) {
+						console.log("rect");
 						var ind = annos[i]["on"].search("xywh");
+						console.log(ind);
 						if (ind > -1) {
-							drawRectalinearAnnotation(annos[i]);
+							var dimString = annos[i]["on"].substr((ind + 5));
+							var dims = dimString.split(",");
+							drawRectalinearAnnotation(dims);
+						} else {
+							console.error("Warning: annotation 'on' property found, but could not retrieve dimensions!");
 						}
 					}
 				}
 			}
 		};	
 		
-		var drawRectalinearAnnotation = function (anno) {
-			var ind = anno["on"].search("xywh");
-			var dimString = anno["on"].substr( (ind + 5));
-			console.log(dimString);
+		var drawRectalinearAnnotation = function (dimsArray) {
+			//TODO: do some checks to make sure values conform
+			anoCx.beginPath();
+			var x, y, w, h;
+			x = Number(dimsArray[0]);
+			y = Number(dimsArray[1]);
+			w = Number(dimsArray[2]);
+			h = Number(dimsArray[3]);
+			console.log(x);
+			console.log(y);
+			console.log(w);
+			console.log(h);
+			anoCx.moveTo(x, y);
+			anoCx.lineTo((x + w), y);
+			anoCx.lineTo((x + w), (y + h));
+			anoCx.lineTo(x, (y + h));
+			anoCx.lineTo(x, y);
+			anoCx.stroke();
+			
+			
+		};
+		
+		var drawSVGAnnotation = function (data) {
+			//TODO: maybe check for type of data input
+			console.log(data);
+			
+			var type = determineSVGType(data);
+			switch (type) {
+				case "CIRC":
+					alert("Found a circle SVG - currently unsupported");
+					break;
+				case "POLY":
+					var ind = data.search("points");
+					
+					// var pointPairs = 
+					break;
+				default:
+					alert("Found an SVG with an unsupported type.");
+			}
+			
+		};
+		
+		var determineSVGType = function (svgString) {
+			//TODO: use the configs object 
+			// var types = ["cirlce", "poly"];
+			var type, ind;
+			for (var i = 0; i < self.MODES.length; i++) {
+				ind = string.toLowerCase().indexOf(self.MODES[i]);
+				if (ind > -1) {
+					type = self.MODES[i];
+				}
+			}
+			return type;
+			
 		};
 		
 		//TODO: maybe convert the mouse coordinates to SC coordinates here?
@@ -450,6 +516,7 @@
 		var moveCallback = function (e) {
 			prevmPos = mPos;
 			mPos = self.getMousePos(e);
+			console.log(mPos);
 		};
 		
 		//TODO: rename this, or expand for each mode...

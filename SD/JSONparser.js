@@ -126,8 +126,7 @@
 							// curTextLine +=("<br />"); -->
 						}
 					} else {
-						console.error("Something went wrong here:");
-						console.error(canvasObject[n]);
+						//Item was blank
 					}
 				//}
 			}
