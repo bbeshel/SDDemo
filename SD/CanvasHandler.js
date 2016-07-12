@@ -83,6 +83,17 @@
 		var annoListData;
 		var canvasData;
 		
+		var receivedDataCheck = {
+			image : false,
+			annos : false,
+			canvas : false,
+			complete : function () {
+				if (this.image && this.annos && this.canvas) {
+					return true;
+				}
+				return false;
+			}
+		};
 		
 		//TODO: consider moving to init
 		//Object to house the toolbar and its functions
@@ -209,6 +220,7 @@
 				this.bottommost = 0;
 				this.annoListIndex = -1;
 				this.type = null;
+				this.JSON = null;
 			},
 			updateBounds: function (px, py) {
 				this.leftmost = px < this.leftmost ? px : this.leftmost;
@@ -309,6 +321,8 @@
 				console.log(data);
 				CONFIGS.annotationList = jQuery.extend(true, {}, data);
 				convertAnnotations();
+				receivedDataCheck.annos = true;
+				onAllDataRetrieved();
 			});
 			
 			$(document).on("parser_canvasDataRetrieved", function (e, data) {
@@ -316,6 +330,8 @@
 				console.log(data);
 				CONFIGS.canvasData = jQuery.extend(true, {}, data);
 				setCanvasDimensions();
+				receivedDataCheck.canvas = true;
+				onAllDataRetrieved();
 			});
 			
 			$(document).on("parser_imageDataRetrieved", function (e, data) {
@@ -326,6 +342,12 @@
 				// var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
 				CONFIGS.canvasImageSrc = data[0].src;
 				drawAndResizeImage();
+				receivedDataCheck.image = true;
+				onAllDataRetrieved();
+			});
+			
+			$(document).on("handler_setupStatusUpdate", function () {
+				
 			});
 			
 			//Changes the mode of operation on the canvas
@@ -398,11 +420,16 @@
 		};
 
 		var onAllDataRetrieved = function () {
-			setCanvasDimensions();
-			drawAndResizeImage();
+			if (receivedDataCheck.complete) {
+				console.log("WE DID IT");
+				redrawCompletedPaths();
+			}
+			// setCanvasDimensions();
+			// drawAndResizeImage();
 			// drawAllCanvasAnnotations();
 		};
 		
+	
 		var setCanvasDimensions = function () {
 			if (CONFIGS.canvasData != null) {
 				console.log("canvas data found");
@@ -482,13 +509,16 @@
 					} else if (annos[i].hasOwnProperty("on")) {
 						console.log("rect");
 						var curAnno = annos[i];
+						console.log(curAnno);
 						rectToAnchor(curAnno);
 					}
 				}
+				redrawCompletedPaths();
 			}
 		};
 		
 		var rectToAnchor = function (annotation) {
+			console.log(annotation);
 			var ind = annotation["on"].search("xywh");
 			if (ind > -1) {
 				var dimString = annotation["on"].substr((ind + 5));
@@ -509,9 +539,10 @@
 				// TODO: determine the position in the anno list?
 				// anchorList.annoListIndex =
 				// drawRectalinearAnnotation(dims);
-				
+				anchorList.JSON = JSON.stringify(annotation);
 				var curList = jQuery.extend(true, {}, anchorList);
 				completedPaths.push(curList);
+				anchorList.clear();
 			} else {
 				console.error("Warning: annotation 'on' property found, but could not retrieve dimensions!");
 			}
@@ -687,11 +718,14 @@
 				anchorList.push(anchorList.x[0], anchorList.y[0]);
 				console.log(tool.MODE);
 				anchorList.type = tool.MODE;
+				console.log(anchorList.type);
 				anchorList.generateJSON();
+				console.log(anchorList);
 				completedPaths.push(clone(anchorList));
 				createSVGTag(anchorList);
 				anchorList.clear();
-			
+				console.log(completedPaths);
+				$(document).trigger("toolbar_updateAnnotationData");
 			}
 		}
 		
@@ -750,7 +784,7 @@
 			
 			console.log(svgTags);
 			console.log(svg.get(0));
-			return svg;
+			return str;
 		};
 		
 		var readSVGTag = function (tag) {
@@ -924,6 +958,7 @@
 			drawPath(selectedPath);
 			
 			updateCompletedPaths();
+			$(document).trigger("toolbar_updateAnnotationData");
 			
 			selectedPathsCurIndex = 0;
 			selectedPathsAnchorIndex = null;
@@ -949,6 +984,7 @@
 				}
 				skipPath = false;
 			}
+			$(document).trigger("toolbar_updateAnnotationData");
 		};
 		
 		//Sorts selected list of shapes by bounding box area
@@ -1015,6 +1051,10 @@
 			var pointX = path.x[0];
 			var pointY = path.y[0];
 			path.push(pointX, pointY);
+		};
+		
+		self.getCompletedPaths = function () {
+			return completedPaths;
 		};
 		
 		//initialize modes to allow function expansion
