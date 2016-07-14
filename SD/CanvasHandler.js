@@ -239,11 +239,11 @@
 						var SVGstring = createSVGTag(this);
 						anno = $.extend(true, {}, dummyPolyAnnotation);
 						anno["resource"]["selector"]["chars"] = SVGstring;
-						
+						console.log(SVGstring);
 						//TODO: get the link of this canvas for the on property
 						// anno["on"
 						
-						this.JSON = anno;
+						this.JSON = JSON.stringify(anno);
 						break;
 					case "RECT":
 						break;
@@ -355,6 +355,12 @@
 				resetSharedParams();
 			});
 			
+			$(document).on("toolbar_annoItemClick", function (e, data) {
+				console.log(data);
+				$(document).trigger("handler_canvasIntClear");
+				drawPathIndicator(data);
+			});
+			
 			//Generic document mousemove catch and handler
 			$(document).on("mousemove", function (e) {
 				//Update the mouse coordinates, etc...
@@ -462,6 +468,7 @@
 			intCanvas.height = hgt;
 			$canvasContainer.width(wid);
 			$canvasContainer.height(hgt);
+			$("#toolContainer").height(hgt);
 		};
 		
 		var drawAndResizeImage = function () {
@@ -502,8 +509,10 @@
 					if (annos[i].hasOwnProperty("resource") && annos[i]["resource"].hasOwnProperty("selector")) {						
 						console.log("SVG");
 						if (annos[i]["resource"]["selector"].hasOwnProperty("chars")) {
-							var svgString = annos[i]["resource"]["selector"]["chars"];
-							drawSVGAnnotation(svgString);
+							// var svgString = annos[i]["resource"]["selector"]["chars"];
+							// drawSVGAnnotation(svgString);
+							var curAnno = annos[i];
+							SVGToAnchor(curAnno);
 							
 						}
 					} else if (annos[i].hasOwnProperty("on")) {
@@ -545,6 +554,32 @@
 				anchorList.clear();
 			} else {
 				console.error("Warning: annotation 'on' property found, but could not retrieve dimensions!");
+			}
+		};
+		
+		var SVGToAnchor = function (annotation) {
+			var chars = annotation["resource"]["selector"]["chars"];
+			var ind = chars.search("points");
+			if (ind > -1) {
+				var charSub = chars.substr(ind);
+				var indBegin = chars.search("\"");
+				charSub = charSub.substr((indBegin + 1));
+				var indEnd = charSub.search("\"");
+				var pointString = charSub.substring(0, indEnd);
+				var points = pointString.split(/[\s,]+/);
+				//TODO: make sure the split worked
+				anchorList.clear();
+				for (var i = 0; i < points.length; i++) {
+					points[i] = Number(points[i]);
+					anchorList.push(points[i], points[i+1]);
+					i++;
+				}
+				anchorList.type = "POLY";
+				anchorList.JSON = JSON.stringify(annotation);
+				var curList = jQuery.extend(true, {}, anchorList);
+				completedPaths.push(curList);
+				anchorList.clear();
+				
 			}
 		};
 		
@@ -867,10 +902,18 @@
 		//Redraws the completed shape on the interaction canvas for editing
 		var drawSelectedPathIndicator = function () {
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
+			drawPathIndicator(selectedPath);
+		};
+		
+		var drawPathIndicator = function (path) {
+			if (path == null) {
+				return;
+			}
+			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 			intCx.beginPath();
-			intCx.moveTo(selectedPath.x[0], selectedPath.y[0]);
-			for (var i = 1; i < selectedPath.length; i++) {
-				intCx.lineTo(selectedPath.x[i], selectedPath.y[i]);
+			intCx.moveTo(path.x[0], path.y[0]);
+			for (var i = 1; i < path.length; i++) {
+				intCx.lineTo(path.x[i], path.y[i]);
 			}
 			intCx.stroke();
 		};

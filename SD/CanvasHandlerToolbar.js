@@ -12,6 +12,10 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
+	var jsonItemString = "<div class='toolbarAnnoItem'></div>";
+	
+	var $jsonContainer = $("<div class='toolbarItem' id='jsonDisplayContainer'></div>");
+	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
@@ -40,7 +44,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $toolDiv.append($buttonEdit);
 		$toolDiv.append($opModeSelector);
 		$toolDiv.append($snapZoneSlider);
-		$toolDiv.append($jsonDisplay);
+		$toolDiv.append($jsonContainer);
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
@@ -64,19 +68,35 @@ var CanvasHandlerToolbar = function (parentContext) {
 		});
 		
 		$(document).on("toolbar_updateAnnotationData", function () {
-			$jsonDisplay.val("");
-			var string = "";
-			var annos = chandlerParent.getCompletedPaths();
-			for (var i = 0; i < annos.length; i++) {
-				if (annos[i].JSON != null) {
-					string += JSON.stringify(annos[i].JSON);
-				}
-			}
-			$jsonDisplay.val(string);
+			updateJSONDisplay();
 		});
 		// $buttonEdit.on("click", function () {
 			// changeCanvasMode("EDIT");
 		// });
+	};
+	
+	var updateJSONDisplay = function () {
+		// $jsonDisplay.val("");
+		// var string = "";
+		// var annos = chandlerParent.getCompletedPaths();
+		// for (var i = 0; i < annos.length; i++) {
+			// if (annos[i].JSON != null) {
+				// string += JSON.stringify(annos[i].JSON);
+			// }
+		// }
+		// $jsonDisplay.val(string);
+		$jsonContainer.empty();
+		var div;
+		var annos = chandlerParent.getCompletedPaths();
+		for (var i = 0; i < annos.length; i++) {
+			if (annos[i].JSON != null) {
+				div = $(jsonItemString);
+				div.html(annos[i].JSON);
+				div.path = annos[i];
+				setupAnnoClick(div);
+				$jsonContainer.append(div);
+			}
+		}
 	};
 	
 	var toolbarAppend = function ($el) {
@@ -86,7 +106,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	//removes all associated tool elements except the opModeSelector
 	var toolbarClear = function () {
 		// console.log($toolDiv.slice);
-		$toolDiv.children().not($opModeSelector).not($jsonDisplay).detach();
+		$toolDiv.children().not(".toolbarAnnoItem").not($opModeSelector).not($jsonContainer).detach();
 	};
 	
 	var toolbarModeInit = function () {
@@ -111,6 +131,12 @@ var CanvasHandlerToolbar = function (parentContext) {
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
 		toolbarModeInit();
+	};
+	
+	var setupAnnoClick = function (div) {
+		div.on("click", function () {
+			$(document).trigger("toolbar_annoItemClick", [div.path]);
+		});
 	};
 	
 	

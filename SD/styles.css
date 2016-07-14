@@ -23,3 +23,16 @@
 	float: left;
 	position: absolute;
 }
+
+#jsonDisplayContainer {
+	height: 30%;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	background-color: #FFFFFF;
+}
+
+.toolbarAnnoItem {
+	word-wrap: break-word;
+	margin: 5px;
+	background-color: #AAAAAA;
+}
