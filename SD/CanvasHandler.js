@@ -33,15 +33,13 @@
 		];
 		
 		var dummyAnnotation = {
-			"@id" : null,
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:Painting",
 			"resource" : {
 				"@type" : "cnt:ContentAsText",
 				"cnt:chars" : ""
 			},
-			"on" : null,
-			"otherContent" : []
+			"on" : null
 		};
 		
 		var dummyPolyAnnotation = {
@@ -77,7 +75,8 @@
 			canvasHeight : 0,
 			canvasImageSrc : null,
 			annotationList : null,
-			canvasData : null
+			canvasData : null,
+			canvasId : null
 		};
 		
 		var annoListData;
@@ -236,16 +235,48 @@
 				var anno;
 				switch (this.type) {
 					case "POLY":
+						if (this.JSON == null) {
+							anno = $.extend(true, {}, dummyPolyAnnotation);
+							anno["on"] = CONFIGS.canvasId;
+						} else {
+							anno = JSON.parse(this.JSON);
+						}
 						var SVGstring = createSVGTag(this);
-						anno = $.extend(true, {}, dummyPolyAnnotation);
 						anno["resource"]["selector"]["chars"] = SVGstring;
 						console.log(SVGstring);
 						//TODO: get the link of this canvas for the on property
-						// anno["on"
 						
 						this.JSON = JSON.stringify(anno);
+						
 						break;
 					case "RECT":
+						//TODO: probably have a check to see if this was edited
+						if (this.JSON == null) {
+							anno = $.extend(true, {}, dummyAnnotation);
+							var on = CONFIGS.canvasId;
+						} else {
+							anno = JSON.parse(this.JSON);
+							var on = anno["on"];
+							on = on.substring(0, on.search("#xywh="));
+						}
+						console.log(this.leftmost);
+						console.log(this.topmost);
+						console.log(this.rightmost);
+						console.log(this.bottommost);
+						//calculate xywh
+						//TODO: check if x[0] is actually the top-left point
+						on += "#xywh=" 
+						+ this.leftmost + "," 
+						+ this.topmost + "," 
+						+ (this.rightmost - this.leftmost) + "," 
+						+ (this.bottommost - this.topmost);
+						
+						anno["on"] = on;
+						
+						console.log(this.x);
+						console.log(this.y);
+						
+						this.JSON = JSON.stringify(anno);
 						break;
 					default:
 					
@@ -499,6 +530,9 @@
 			} else if (CONFIGS.annotationList == null) {
 				console.log("Warning: attempt to draw annotations failed. Reason: annotationList was null");
 			} else {
+				//TODO: maybe move this somewhere else
+				CONFIGS.canvasId = parser.getCanvasId();
+				
 				var annos = CONFIGS.annotationList.resources;
 				var ind;
 				console.log(annos);
@@ -639,6 +673,12 @@
 			
 		};
 		
+		var generateAllJSON = function () {
+			for (var i = 0; i < completedPaths.length; i++) {
+				completedPaths[i].generateJSON();
+			}
+		};
+		
 		//TODO: maybe convert the mouse coordinates to SC coordinates here?
 		//Gets the mouse coordinates on the canvas
 		this.getMousePos = function(evt) {
@@ -668,27 +708,7 @@
 		//TODO: rename this, or expand for each mode...
 		//Draws the mouse pointer indicator
 		var drawIndicator = function () {
-			var x, y;
 			
-			//Checks to see if we should force the indicator to a snap point
-			if (snapToClosePathBool && anchorList.length > 1) {
-				var anchor = { 
-					x : anchorList.x[0],
-					y : anchorList.y[0]
-				};
-				if (checkIfNearAnchor(mPos, anchor)) {
-					isInSnapZone = true;
-					x = anchorList.x[0];
-					y = anchorList.y[0];
-				}
-			}
-			
-			//Not near snap zone, so draw the indicator normally.
-			if (x == null && y == null) {
-				isInSnapZone = false;
-				x = mPos.x;
-				y = mPos.y;
-			}
 			
 			intCx.beginPath();
 			//TODO: make this permanent before calls 
@@ -696,19 +716,9 @@
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
 			//TODO: make the radius editable.
-			intCx.arc(x, y, 5, 0, 360);
+			intCx.arc(mPos.x, mPos.y, 5, 0, 360);
 			intCx.stroke();
-
-			//Draw the line from the previous anchor to mPos/snap point
-			if (anchorList.length > 0) {
-				intCx.beginPath();
-				intCx.moveTo(
-					anchorList.x[anchorList.length-1], 
-					anchorList.y[anchorList.length-1]
-				);
-				intCx.lineTo(x, y);
-				intCx.stroke();
-			}
+			
 		};
 		
 		//Draws the next line in the path being created
@@ -756,7 +766,9 @@
 				console.log(anchorList.type);
 				anchorList.generateJSON();
 				console.log(anchorList);
-				completedPaths.push(clone(anchorList));
+				// completedPaths.push(clone(anchorList));
+				var an = $.extend(true, {}, anchorList);
+				completedPaths.push(an)
 				createSVGTag(anchorList);
 				anchorList.clear();
 				console.log(completedPaths);
@@ -882,7 +894,8 @@
 		//Checks if the user clicked inside a completed annotation during edit mode (selected a shaoe)
 		var checkIfInAnnoBounds = function (curPath, mPosCur, index) {
 			if (curPath.leftmost < mPosCur.x && mPosCur.x < curPath.rightmost && curPath.topmost < mPosCur.y && mPosCur.y < curPath.bottommost) {
-				selectedPaths.push( { path : clone(curPath), compIndex : index } );
+				var p = $.extend(true, {}, curPath);
+				selectedPaths.push( { path : p, compIndex : index } );
 				isInSelectedAnno = true;
 			};
 		};
@@ -945,8 +958,11 @@
 		var updateCompletedPaths = function () {
 			var curInd = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
+				console.log(selectedPaths[i].path);
 				curInd = selectedPaths[i].compIndex;
-				completedPaths[curInd] = clone(selectedPaths[i].path);
+				// completedPaths[curInd] = clone(selectedPaths[i].path);
+				var p = $.extend(true, {}, selectedPaths[i].path);
+				completedPaths[curInd] = p;
 			}
 		};
 		
@@ -1001,6 +1017,7 @@
 			drawPath(selectedPath);
 			
 			updateCompletedPaths();
+			generateAllJSON();
 			$(document).trigger("toolbar_updateAnnotationData");
 			
 			selectedPathsCurIndex = 0;
@@ -1103,10 +1120,44 @@
 		//initialize modes to allow function expansion
 		tool.POLY = Object.create(null);
 		tool.EDIT = Object.create(null);
+		tool.RECT = Object.create(null);
 		
 		tool.POLY.mousemove = function (e) {
 			$(document).trigger("handler_canvasIntClear");
 			drawIndicator();
+			
+			var x, y;
+			//Checks to see if we should force the indicator to a snap point
+			if (snapToClosePathBool && anchorList.length > 1) {
+				var anchor = { 
+					x : anchorList.x[0],
+					y : anchorList.y[0]
+				};
+				if (checkIfNearAnchor(mPos, anchor)) {
+					isInSnapZone = true;
+					x = anchorList.x[0];
+					y = anchorList.y[0];
+				}
+			}
+			
+			//Not near snap zone, so draw the indicator normally.
+			if (x == null && y == null) {
+				isInSnapZone = false;
+				x = mPos.x;
+				y = mPos.y;
+			}
+			
+
+			//Draw the line from the previous anchor to mPos/snap point
+			if (anchorList.length > 0) {
+				intCx.beginPath();
+				intCx.moveTo(
+					anchorList.x[anchorList.length-1], 
+					anchorList.y[anchorList.length-1]
+				);
+				intCx.lineTo(x, y);
+				intCx.stroke();
+			}
 		};
 		
 		tool.POLY.click = function (e) {
@@ -1208,6 +1259,56 @@
 		
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
+		};
+		
+		tool.RECT.click = function () {
+			if (anchorList.length < 1) {
+				addAnchor();
+				console.log(mPos);
+			} else {
+				var mPosCur = mPos;
+				var x = anchorList.x[0];
+				var y = anchorList.y[0];
+				anchorList.push(mPosCur.x, y);
+				console.log(mPosCur.x);
+				console.log(y);
+				continuePath();
+				anchorList.push(mPosCur.x, mPosCur.y);
+				console.log(mPosCur.x);
+				console.log(mPosCur.y);
+				continuePath();
+				anchorList.push(x, mPosCur.y);
+				console.log(x);
+				console.log(mPosCur.y);
+				continuePath();
+				// anchorList.push(x, y);
+				endPath();
+				console.log(mPos);
+				
+				$(document).trigger("handler_canvasIntClear");
+				
+			}
+		};
+		
+		tool.RECT.mousemove = function () {
+			$(document).trigger("handler_canvasIntClear");
+			drawIndicator();
+			
+			var mPosCur = mPos;
+			
+			if (anchorList.length > 0) {
+				var x = anchorList.x[0];
+				var y = anchorList.y[0];
+				intCx.beginPath();
+				intCx.moveTo(x, y);
+				intCx.lineTo(mPosCur.x, y);
+				intCx.lineTo(mPosCur.x, mPosCur.y);
+				intCx.lineTo(x, mPosCur.y);
+				intCx.lineTo(x, y);
+				intCx.stroke();
+				
+			}
+			
 		};
 		
 	};

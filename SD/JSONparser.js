@@ -25,6 +25,7 @@
 		var canvJSON;
 		var annoJSON;
 		var canvImg;
+		var canvId;
 
 		//Handles errors
 		// window.addEventListener('error',function(e){
@@ -39,8 +40,12 @@
 		var basicCheck = function(canvasObject, $textOb){
 			if (canvasObject["@type"] === "sc:Canvas") {
 				handleURL(canvasObject["@id"]);
+				canvId = canvasObject["@id"];
 			}
 			if (canvasObject["@type"] === "sc:AnnotationList") {
+				if (canvasObject.hasOwnProperty("on") && canvId == null) {
+					canvId = canvasObject["on"];
+				}
 				$textOb = $curAno;
 				//insideAnnoList = true;
 				handleURL(canvasObject["@id"]);
@@ -331,6 +336,13 @@
 				return;
 			}
 			return canvImg;
+		};
+		
+		self.getCanvasId = function () {
+			if (canvId == null) {
+				return;
+			}
+			return canvId;
 		};
 		
 		self.requestData = function (data) {

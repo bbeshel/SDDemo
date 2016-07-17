@@ -12,7 +12,9 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
-	var jsonItemString = "<div class='toolbarAnnoItem'></div>";
+	// var jsonItemString = "<div class='toolbarAnnoItem'></div>";
+	// var jsonItemString = "<p class='toolbarAnnoItem'></p>";
+	var jsonItemString = "<textarea readonly class='toolbarAnnoItem'></textarea>";
 	
 	var $jsonContainer = $("<div class='toolbarItem' id='jsonDisplayContainer'></div>");
 	
@@ -91,7 +93,10 @@ var CanvasHandlerToolbar = function (parentContext) {
 		for (var i = 0; i < annos.length; i++) {
 			if (annos[i].JSON != null) {
 				div = $(jsonItemString);
-				div.html(annos[i].JSON);
+				var x = annos[i].JSON;
+				x = x.replace(/\\"/g, '"');
+				div.html(x);
+				console.log(annos[i].JSON);
 				div.path = annos[i];
 				setupAnnoClick(div);
 				$jsonContainer.append(div);
