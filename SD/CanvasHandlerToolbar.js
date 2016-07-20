@@ -26,6 +26,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
+	var $exportData = $("<button id='exportData' class='toolbarItem'>Export as JSON</button>");
+	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		for (var n in chandlerParent.MODES) {
@@ -65,6 +67,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 			$(document).trigger("handler_saveEditChanges");
 		});
 		
+		
+		
 		$(document).on("toolbar_changeOperationMode", function (e, data) {
 			changeCanvasMode(data);
 		});
@@ -75,6 +79,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $buttonEdit.on("click", function () {
 			// changeCanvasMode("EDIT");
 		// });
+		
 	};
 	
 	var updateJSONDisplay = function () {
@@ -142,6 +147,14 @@ var CanvasHandlerToolbar = function (parentContext) {
 		div.on("click", function () {
 			$(document).trigger("toolbar_annoItemClick", [div.path]);
 		});
+	};
+	
+	self.setDummyState = function () {
+		$exportData.on("click", function () {
+			$(document).trigger("handler_exportAllDataJSON");
+		});
+		
+		$toolDiv.append($exportData);
 	};
 	
 	

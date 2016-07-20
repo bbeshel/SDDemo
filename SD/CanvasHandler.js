@@ -55,6 +55,29 @@
 			"on" : null
 		};
 		
+		var dummyCanvas = {
+      //This will be the anchor canvas in the anchor range
+          "@id" : "http://www.example.org/dummy/canvas/",
+          "@type" : "sc:Canvas",
+          "label" : "dummy canvas",
+          "height" : 1000,
+          "width" : 1000,
+          "images" : [{
+              "@type" : "oa:Annotation",
+              "motivation" : "sc:painting",
+              "resource" : {
+                "@id" : "http://lightonlens.com/wp-content/uploads/2013/07/raja_lol_gateway_arch1-2-2000x1125.jpg",
+                "@type" : "dctypes:Image",
+                "format" : "image/jpeg",
+                "height" : 2365,
+                "width" : 1579
+              },
+              "on" : "http://www.example.org/dummy/canvas/"
+          }],
+          "otherContent":[] // pretend its empty, you need to create the list for the first time, so start an array and put the annos in it.
+         };
+
+		
 		/*
 		The default configuration object.
 		This will be overwritten by attributes of a SharedCanvas JSON-LD object when found, 
@@ -88,6 +111,12 @@
 			canvas : false,
 			complete : function () {
 				if (this.image && this.annos && this.canvas) {
+					return true;
+				}
+				return false;
+			},
+			fail : function () {
+				if (!this.image && !this.annos && !this.canvas) {
 					return true;
 				}
 				return false;
@@ -247,6 +276,7 @@
 						//TODO: get the link of this canvas for the on property
 						
 						this.JSON = JSON.stringify(anno);
+						console.log(this.JSON);
 						
 						break;
 					case "RECT":
@@ -347,22 +377,56 @@
 				saveEditChanges();
 			});
 			
+			$(document).on("handler_exportAllDataJSON", function () {
+				//TODO: do not use this until we have checks for each annotation
+				/*currently only throws together the .JSON versions 
+				of each anchorList annotation in a list and adds them to the 
+				CONFIGS.canvasData, then sends the request to the server
+				*/
+				for (var i = 0; i < completedPaths.length; i++) {
+					console.log(completedPaths[i].JSON);
+					//TODO: check if valid JSON first
+					var j = JSON.parse(completedPaths[i].JSON);
+					CONFIGS.canvasData["otherContent"].push(j);
+				}
+				
+				var params = JSON.stringify(CONFIGS.canvasData);
+				
+				// CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
+				var posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+				
+				$.ajax({
+					url: posturl,
+					type: "POST",
+					dataType: "json",
+					crossDomain: true,
+				})
+				.done(function (data) {
+					console.log(data);
+				})
+				.fail(function (xhr, status, errorThrown) {
+					console.log(status);
+					console.log(errorThrown);
+				});
+				
+			});
+			
 			$(document).on("parser_annoDataRetrieved", function (e, data) {
 				console.log("FOUND ANNO DATA");
 				console.log(data);
 				CONFIGS.annotationList = jQuery.extend(true, {}, data);
-				convertAnnotations();
+				// convertAnnotations();
 				receivedDataCheck.annos = true;
-				onAllDataRetrieved();
+				// onAllDataRetrieved();
 			});
 			
 			$(document).on("parser_canvasDataRetrieved", function (e, data) {
 				console.log("FOUND CANVAS DATA");
 				console.log(data);
 				CONFIGS.canvasData = jQuery.extend(true, {}, data);
-				setCanvasDimensions();
+				// setCanvasDimensions();
 				receivedDataCheck.canvas = true;
-				onAllDataRetrieved();
+				// onAllDataRetrieved();
 			});
 			
 			$(document).on("parser_imageDataRetrieved", function (e, data) {
@@ -371,9 +435,13 @@
 				//TODO: set canvas size based on parsed info, unless missing
 				//TODO: add variable image tag for onload based on parsed content
 				// var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
-				CONFIGS.canvasImageSrc = data[0].src;
-				drawAndResizeImage();
+				CONFIGS.canvasImageSrc = data;
+				// drawAndResizeImage();
 				receivedDataCheck.image = true;
+				// onAllDataRetrieved();
+			});
+			
+			$(document).on("parser_allDataRetrieved", function () {
 				onAllDataRetrieved();
 			});
 			
@@ -439,28 +507,61 @@
 				console.log("data wasnt null");
 				parser.requestData(data);
 			} else {
-				CONFIGS.canvasImageSrc = 'http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg';
-				var $canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
-				$canvImg.on("load", function () {
-					//TODO: make sure size of canvas conforms to standard
-					//TODO: make sure original data preserved corresponding to JSON canvas size
-					CONFIGS.canvasWidth = $canvImg.get(0).width;
-					CONFIGS.canvasHeight = $canvImg.get(0).height;
-					setCanvasDimensions();
-					console.log(CONFIGS.canvasWidth);
-					imgCx.drawImage($canvImg.get(0), 0, 0);
-				});
+				// CONFIGS.canvasImageSrc = 'http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg';
+				// var $canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
+				// $canvImg.on("load", function () {
+					// //TODO: make sure size of canvas conforms to standard
+					// //TODO: make sure original data preserved corresponding to JSON canvas size
+					// CONFIGS.canvasWidth = $canvImg.get(0).width;
+					// CONFIGS.canvasHeight = $canvImg.get(0).height;
+					// setCanvasDimensions();
+					// console.log(CONFIGS.canvasWidth);
+					// imgCx.drawImage($canvImg.get(0), 0, 0);
+				// });
 			}
 			
 			
 			
 		};
 
+		//Callback for when the parser has finished
 		var onAllDataRetrieved = function () {
-			if (receivedDataCheck.complete) {
-				console.log("WE DID IT");
-				redrawCompletedPaths();
+			alert("dat retriev");
+			
+			
+			
+			if (receivedDataCheck.canvas) {
+				setCanvasDimensions();
+				CONFIGS.canvasId = parser.getCanvasId();
+			} else {
+				//TODO: setup fallback here instead
+				var dummyCan = $.extend(true, {}, dummyCanvas);
+				CONFIGS.canvasData = dummyCan;
+				CONFIGS.canvasId = CONFIGS.canvasData["@id"];
+				setCanvasDimensions();
 			}
+			
+			if (receivedDataCheck.image) {
+				drawAndResizeImage();
+			} else {
+				//TODO: fallback
+				CONFIGS.canvasImageSrc = CONFIGS.canvasData["images"][0]["resource"]["@id"];
+				drawAndResizeImage();
+			}
+			
+			if (receivedDataCheck.annos) {
+				convertAnnotations();
+			} 
+			
+			//TODO: revise
+			if (receivedDataCheck.complete()) {
+				console.log("WE DID IT");
+			} else if (receivedDataCheck.fail()) {
+				console.log("WE DUMMY NOW");
+				tool.setDummyState();
+			}
+			
+				redrawCompletedPaths();
 			// setCanvasDimensions();
 			// drawAndResizeImage();
 			// drawAllCanvasAnnotations();
@@ -468,6 +569,7 @@
 		
 	
 		var setCanvasDimensions = function () {
+			//Grab the canvas dimensions from the parsed data
 			if (CONFIGS.canvasData != null) {
 				console.log("canvas data found");
 				var wid = CONFIGS.canvasData.width;
@@ -475,14 +577,19 @@
 				CONFIGS.canvasWidth = wid;
 				CONFIGS.canvasHeight = hgt;
 			}
-
+			
+			//Canvas data exists with no dimensions
 			if (CONFIGS.canvasWidth !== 0) {
-				console.log("no canvas data found");
+				// alert("aw snap");
 				var wid = CONFIGS.canvasWidth;
 				var hgt = CONFIGS.canvasHeight;
 			} else {
-				console.log("returning");
-				return;
+				//fallback to default size
+				// alert("yo");
+				CONFIGS.canvasWidth = 1000;
+				CONFIGS.canvasHeight = 1000;				
+				var wid = CONFIGS.canvasWidth;
+				var hgt = CONFIGS.canvasHeight;
 			}
 				console.log(CONFIGS.canvasWidth);
 				console.log(CONFIGS.canvasHeight);
@@ -503,35 +610,44 @@
 		};
 		
 		var drawAndResizeImage = function () {
+			if (CONFIGS.canvasImageSrc == null) {
+				console.error("Warning: image source was null");
+				return;
+			}
 			var $canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
 			$canvImg.on("load", function () {
 				//TODO: make sure size of canvas conforms to standard
 				//TODO: make sure original data preserved corresponding to JSON canvas size
-				$canvImg.width = CONFIGS.canvasWidth;
-				$canvImg.height = CONFIGS.canvasHeight;
-				imgCx.drawImage($canvImg.get(0), 0, 0);
+				// $canvImg.get(0).width = CONFIGS.canvasWidth;
+				// $canvImg.get(0).height = CONFIGS.canvasHeight;
+				imgCx.drawImage($canvImg.get(0), 0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
 				
+			})
+			.on("error", function () {
+				alert("Could not retrieve image data!");
 			});
 		};
 		
+		//Converts all annotations to the anchorList type
 		var convertAnnotations = function () {
-			if (CONFIGS.canvasWidth === 0 && CONFIGS.canvasHeight === 0) {
-				setTimeout(function () {
-					//TODO: remove this, we should always have canvas dimensions?
-					canvasDimensionsChecks++;
-					if (canvasDimensionsChecks === dimensionCheckLimit) {
-						CONFIGS.canvasWidth = 1000;
-						CONFIGS.canvasHeight = 1000;
-						setCanvasDimensions();
-					}
-					console.log("Warning: attempt to draw annotations failed. Reason: No canvas dimensions. Retrying...");
-					convertAnnotations();
-				}, 5000);
-			} else if (CONFIGS.annotationList == null) {
-				console.log("Warning: attempt to draw annotations failed. Reason: annotationList was null");
+			// if (CONFIGS.canvasWidth === 0 && CONFIGS.canvasHeight === 0) {
+				// setTimeout(function () {
+					// //TODO: remove this, we should always have canvas dimensions?
+					// canvasDimensionsChecks++;
+					// if (canvasDimensionsChecks === dimensionCheckLimit) {
+						// CONFIGS.canvasWidth = 1000;
+						// CONFIGS.canvasHeight = 1000;
+						// setCanvasDimensions();
+					// }
+					// console.log("Warning: attempt to draw annotations failed. Reason: No canvas dimensions. Retrying...");
+					// convertAnnotations();
+				// }, 5000);
+			// } else
+			if (CONFIGS.annotationList == null) {
+				alert("Warning: attempt to draw annotations failed. Reason: annotationList was null");
 			} else {
-				//TODO: maybe move this somewhere else
-				CONFIGS.canvasId = parser.getCanvasId();
+				
+				
 				
 				var annos = CONFIGS.annotationList.resources;
 				var ind;
