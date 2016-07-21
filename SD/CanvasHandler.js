@@ -226,6 +226,7 @@
 			annoListIndex: -1,
 			type: null,
 			JSON: null,
+			needsUpdate: false,
 			push: function (px, py) {
 				this.x.push(px);
 				this.y.push(py);
@@ -256,7 +257,28 @@
 				this.topmost = py < this.topmost ? py : this.topmost;
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
 			},
-			//TODO: probably absolute value this stuff...
+			generateBounds: function () {
+				this.leftmost = 100000;
+				this.rightmost = 0;
+				this.topmost = 100000;
+				this.bottommost = 0;
+				
+				for (var i = 0; i < this.length; i++) {
+					if (this.x[i] < this.leftmost) {
+						this.leftmost = this.x[i];
+					}
+					if (this.x[i] > this.rightmost) {
+						this.rightmost = this.x[i];
+					}
+					if (this.y[i] < this.topmost) {
+						this.topmost = this.y[i];
+					}
+					if (this.y[i] > this.bottommost) {
+						this.bottommost = this.y[i];
+					}
+				}
+				
+			},
 			getBoundingBoxArea: function () {
 				return Math.abs(this.rightmost - this.leftmost) * Math.abs(this.bottommost - this.topmost);
 			},
@@ -377,6 +399,10 @@
 				saveEditChanges();
 			});
 			
+			$(document).on("handler_resetAnnoUpdateStatus", function () {
+				resetAnnoUpdateStatus();
+			});
+			
 			$(document).on("handler_exportAllDataJSON", function () {
 				//TODO: do not use this until we have checks for each annotation
 				/*currently only throws together the .JSON versions 
@@ -408,6 +434,8 @@
 					console.log(status);
 					console.log(errorThrown);
 				});
+				
+				$(document).trigger("handler_resetAnnoUpdateStatus");
 				
 			});
 			
@@ -662,21 +690,21 @@
 							// var svgString = annos[i]["resource"]["selector"]["chars"];
 							// drawSVGAnnotation(svgString);
 							var curAnno = annos[i];
-							SVGToAnchor(curAnno);
+							SVGToAnchor(curAnno, i);
 							
 						}
 					} else if (annos[i].hasOwnProperty("on")) {
 						console.log("rect");
 						var curAnno = annos[i];
 						console.log(curAnno);
-						rectToAnchor(curAnno);
+						rectToAnchor(curAnno, i);
 					}
 				}
 				redrawCompletedPaths();
 			}
 		};
 		
-		var rectToAnchor = function (annotation) {
+		var rectToAnchor = function (annotation, index) {
 			console.log(annotation);
 			var ind = annotation["on"].search("xywh");
 			if (ind > -1) {
@@ -695,6 +723,7 @@
 				anchorList.push(x, y);
 				
 				anchorList.type = "RECT";
+				anchorList.annoListIndex = index;
 				// TODO: determine the position in the anno list?
 				// anchorList.annoListIndex =
 				// drawRectalinearAnnotation(dims);
@@ -707,7 +736,7 @@
 			}
 		};
 		
-		var SVGToAnchor = function (annotation) {
+		var SVGToAnchor = function (annotation, index) {
 			var chars = annotation["resource"]["selector"]["chars"];
 			var ind = chars.search("points");
 			if (ind > -1) {
@@ -724,6 +753,7 @@
 					anchorList.push(points[i], points[i+1]);
 					i++;
 				}
+				anchorList.annoListIndex = index;
 				anchorList.type = "POLY";
 				anchorList.JSON = JSON.stringify(annotation);
 				var curList = jQuery.extend(true, {}, anchorList);
@@ -793,6 +823,20 @@
 			for (var i = 0; i < completedPaths.length; i++) {
 				completedPaths[i].generateJSON();
 			}
+		};
+		
+		var updateJSON = function () {
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].needsUpdate) {
+					completedPaths[i].generateJSON();
+				}
+			}
+		};
+		
+		var resetAnnoUpdateStatus = function () {
+			for (var i = 0; i < completedPaths.length; i++) {
+				completedPaths[i].needsUpdate = false;
+			};
 		};
 		
 		//TODO: maybe convert the mouse coordinates to SC coordinates here?
@@ -1084,8 +1128,38 @@
 		
 		//Updates a single anchor in selectedPaths
 		var updateSelectedAnchor = function (md) {
-			selectedPaths[selectedPathsCurIndex].path.x[selectedPathsAnchorIndex] -= md.x;
-			selectedPaths[selectedPathsCurIndex].path.y[selectedPathsAnchorIndex] -= md.y;
+			switch (selectedPaths[selectedPathsCurIndex].path.type) {
+				case "POLY":
+					selectedPaths[selectedPathsCurIndex].path.x[selectedPathsAnchorIndex] -= md.x;
+					selectedPaths[selectedPathsCurIndex].path.y[selectedPathsAnchorIndex] -= md.y;
+					break;
+				case "RECT":
+					console.log(selectedPaths[selectedPathsCurIndex].path.length);
+					var curInd, curIndA, adjacentIndA, adjacentIndA2;
+					var Yfirst;
+					curInd = selectedPathsCurIndex;
+					curIndA = selectedPathsAnchorIndex;
+					adjacentIndA = (curIndA + 1) % 4;
+					adjacentIndA2 = (curIndA + 3) % 4;
+					
+					
+					
+					if (selectedPaths[curInd].path.x[curIndA] === selectedPaths[curInd].path.x[adjacentIndA]) {
+						// Yfirst = true;
+						selectedPaths[curInd].path.x[adjacentIndA] -= md.x;
+						selectedPaths[curInd].path.y[adjacentIndA2] -= md.y;
+					} else {
+						selectedPaths[curInd].path.y[adjacentIndA] -= md.y;
+						selectedPaths[curInd].path.x[adjacentIndA2] -= md.x;
+						// Yfirst = false;
+					}
+					selectedPaths[curInd].path.x[curIndA] -= md.x;
+					selectedPaths[curInd].path.y[curIndA] -= md.y;
+					
+					break;
+				default:
+			}
+			selectedPaths[selectedPathsCurIndex].path.generateBounds();
 		};
 
 		//Draws the connecting edges to an anchor that is selected
@@ -1125,6 +1199,8 @@
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
 			
+			selectedPath.needsUpdate = true;
+			
 			redrawCompletedPaths();
 			
 			for (var i = 0; i < selectedPaths.length; i++) {
@@ -1133,8 +1209,10 @@
 			drawPath(selectedPath);
 			
 			updateCompletedPaths();
-			generateAllJSON();
+			updateJSON();
+			$(document).trigger("handler_resetAnnoUpdateStatus");
 			$(document).trigger("toolbar_updateAnnotationData");
+			
 			
 			selectedPathsCurIndex = 0;
 			selectedPathsAnchorIndex = null;
