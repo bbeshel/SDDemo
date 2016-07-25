@@ -86,12 +86,12 @@
 		var CONFIGS = {
 			anno : {
 				strokeStyle : "black",
-				lineWidth : 1
+				lineWidth : 5
 			},
 			feedback : {
 				strokeStyle : "red",
 				lineWidth : 1,
-				cursorSize : 5
+				cursorSize : 1
 			},
 			canvasScale : 1,
 			snapZone : 10,
@@ -400,6 +400,11 @@
 				//Changes the snap zone
 			$(document).on("handler_changeSnapZone", function (e, data) {
 				changeSnapZone(data);
+			});
+			
+			//Changes line width
+			$(document).on("handler_changeLineWidth", function(e, data) {
+				changeLineWidth(data);
 			});
 			
 			//Calls to save the changes made in edit mode
@@ -1261,6 +1266,11 @@
 		var changeSnapZone = function (val) {
 			CONFIGS.snapZone = val;
 		};
+		
+		var changeLineWidth = function(val){
+			CONFIGS.anno.lineWidth = val;
+			//CONFIGS.feedback.lineWidth = val;
+		}
 		
 		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {
