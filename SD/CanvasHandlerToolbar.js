@@ -24,6 +24,19 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");
 	
+	var $snapZoneLabel = $("<p style='text-align:center;'>Snap Zone</p>");
+	
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
+	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
+	
+	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
+	var $redColorButton = $("<button class = 'redColorButton'>Red</button>");
+	var $yellowColorButton = $("<button class = 'yellowColorButton>Yellow></button>");
+	var $greenColorButton = $("<button class = 'greenColorButton>Green</button>");
+	var $blueColorButton = $("<button class =' blueColorButton'>Blue</button>");
+	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
+	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
+	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
 	var $exportData = $("<button id='exportData' class='toolbarItem'>Export as JSON</button>");
@@ -47,8 +60,14 @@ var CanvasHandlerToolbar = function (parentContext) {
 		
 		// $toolDiv.append($buttonEdit);
 		$toolDiv.append($opModeSelector);
+		$toolDiv.append($snapZoneLabel);
 		$toolDiv.append($snapZoneSlider);
+		//TODO: Add labels over snapZoneSlider and lineWidth Slider
+		$toolDiv.append($lineWidthLabel);
+		$toolDiv.append($lineWidthSlider);
 		$toolDiv.append($jsonContainer);
+		$toolDiv.append($lineColorLabel);
+		$toolDiv.append($redColorButton);
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
@@ -62,6 +81,21 @@ var CanvasHandlerToolbar = function (parentContext) {
 			var val = parseInt($snapZoneSlider.val());
 			$(document).trigger("handler_changeSnapZone", [val]);
 		});
+		
+		$lineWidthSlider.on("change", function(){
+			var val = parseInt($lineWidthSlider.val());
+			$(document).trigger("handler_changeLineWidth", [val]);
+			console.log("Line Width Changed. Here is the new one:");
+			console.log(val);
+			
+			
+		});
+		
+		$redColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor, 'red' ");
+		});
+		
+		
 		
 		$saveEditChanges.on("click", function () {
 			$(document).trigger("handler_saveEditChanges");
@@ -123,17 +157,24 @@ var CanvasHandlerToolbar = function (parentContext) {
 		toolbarClear();
 		switch (self.MODE) {
 			case "POLY":
+				toolbarAppend($snapZoneLabel);
 				toolbarAppend($snapZoneSlider);
-			break;
+				toolbarAppend($lineWidthLabel);
+				toolbarAppend($lineWidthSlider);
+				break;
 			case "EDIT":
 				toolbarAppend($saveEditChanges);
-			break;
+				break;
 			case "RECT":
-			break;
+				toolbarAppend($lineWidthLabel);
+				toolbarAppend($lineWidthSlider);
+				break;
 			case "CIRC":
-			break;
+				toolbarAppend($lineWidthLabel);
+				toolbarAppend($lineWidthSlider);
+				break;
 			case "ANNO":
-			break;
+				break;
 		}
 	};
 	
