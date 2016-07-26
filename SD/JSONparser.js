@@ -108,9 +108,7 @@
 			//}
 			}
 			recurseIter--;
-			if (recurseIter === 0) {
-				$(document).trigger("parser_allDataRetrieved");
-			}
+			
 		};
 		
 
@@ -168,11 +166,13 @@
 
 
 		var resolveCanvasURL = function (url) {
+			recurseIter++;
 			var aThing = $.getJSON(url, function() {
 					alert("JSON data received.");
 				}
 			).done( function() {
 				canvasParser(aThing.responseText);
+				recurseIter--;
 				}
 			).fail( function() {
 				alert("A problem has been found. Cannot display image.");
@@ -267,6 +267,16 @@
 			lastURL = "";
 		};
 		
+		var checkCompletionStatus = function () {
+			setTimeout(function () {
+				if (recurseIter === 0) {
+					$(document).trigger("parser_allDataRetrieved");
+				} else {
+					checkCompletionStatus();
+				}	
+			}, 1000);
+		};
+		
 		self.getAnnotationListJSON = function () {
 			if (annoJSON == null) {
 				return;
@@ -297,6 +307,7 @@
 		
 		self.requestData = function (data) {
 			evaluateData(data);
+			checkCompletionStatus();
 		};
 
 		//Some tests, to be deleted later

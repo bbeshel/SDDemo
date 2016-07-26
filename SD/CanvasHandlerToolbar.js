@@ -36,6 +36,9 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $blueColorButton = $("<button class =' blueColorButton'>Blue</button>");
 	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
+	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
+	
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
