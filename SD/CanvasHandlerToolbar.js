@@ -38,6 +38,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
 	
+	var $undoButton = $("<button id='undoButton' class='toolbarItem'>Undo Draw</button>");
+	
 	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
 	
 	
@@ -68,6 +70,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		$toolDiv.append($snapZoneSlider);
 		$toolDiv.append($lineWidthLabel);
 		$toolDiv.append($lineWidthSlider);
+		$toolDiv.append($undoButton);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($lineColorLabel);
 		for (n in colorButtonList){
@@ -119,6 +122,10 @@ var CanvasHandlerToolbar = function (parentContext) {
 		
 		$saveEditChanges.on("click", function () {
 			$(document).trigger("handler_saveEditChanges");
+		});
+		
+		$undoButton.on("click", function () {
+			$(document).trigger("handler_execUndo");
 		});
 		
 		
@@ -177,7 +184,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	//removes all associated tool elements except the opModeSelector
 	var toolbarClear = function () {
 		// console.log($toolDiv.slice);
-		$toolDiv.children().not(".toolbarAnnoItem").not($opModeSelector).not($jsonContainer).detach();
+		$toolDiv.children().not("#undoButton").not(".toolbarAnnoItem").not($opModeSelector).not($jsonContainer).detach();
 	};
 	
 	var toolbarModeInit = function () {

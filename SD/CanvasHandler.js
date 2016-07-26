@@ -93,6 +93,7 @@
 				lineWidth : 1,
 				cursorSize : 1
 			},
+			undoLimit : 50,
 			canvasScale : 1,
 			snapZone : 10,
 			canvasWidth : 0,
@@ -192,6 +193,8 @@
 		
 		//Temporary storage for any annotations as anchorLists that are being edited
 		var selectedPaths = [];
+		
+		var undoList = [];
 		
 		//The current index of all detected annotations in edit mode
 		var selectedPathsCurIndex;
@@ -386,6 +389,10 @@
 			
 			$wrapper.append($canvasContainer);
 			tool.init($wrapper);
+			
+			$(document).on("handler_execUndo", function () {
+				execUndo();
+			});
 
 			//Clear the interaction canvas
 			$(document).on("handler_canvasIntClear", function () {
@@ -616,6 +623,8 @@
 			}
 			
 			redrawCompletedPaths();
+			
+			pushUndo();
 			// setCanvasDimensions();
 			// drawAndResizeImage();
 			// drawAllCanvasAnnotations();
@@ -898,6 +907,38 @@
 			};
 		};
 		
+		var pushUndo = function () {
+			
+			if (undoList.length > CONFIGS.undoLimit) {
+				unodList.shift();
+			}
+			var cPath = $.extend(true, [], completedPaths);
+			undoList.push(cPath);
+			$(document).trigger("toolbar_updateAnnotationData");
+			console.log(undoList);
+		};
+		
+		
+		//TODO: maybe make this support redo
+		var execUndo = function () {
+			if (undoList.length < 1) {
+				return;
+			}
+			
+			$(document).trigger("handler_canvasAnoClear");
+			$(document).trigger("handler_canvasIntClear");
+			
+			undoList.pop();
+			var prevPaths = $.extend(true, [], undoList[undoList.length-1]);
+			completedPaths = [];
+			completedPaths = prevPaths;
+			$(document).trigger("toolbar_updateAnnotationData");
+			console.log(completedPaths);
+			
+			redrawCompletedPaths();
+			
+		};
+		
 		var convertToAdjustedDimensions = function (ar) {
 			for (var i = 0; i < ar.length; i++) {
 				if (typeof ar[i] === "number") {
@@ -1016,6 +1057,7 @@
 				anchorList.clear();
 				console.log(completedPaths);
 				$(document).trigger("toolbar_updateAnnotationData");
+				pushUndo();
 			}
 		}
 		
@@ -1277,13 +1319,13 @@
 		
 
 		//Changes lineWidth in CONFIGS
-		var changeLineWidth = function(val){
+		var changeLineWidth = function(val) {
 			CONFIGS.anno.lineWidth = val;
 			//CONFIGS.feedback.lineWidth = val;
 		};
 		
 		
-		var changeLineColor = function(val){
+		var changeLineColor = function(val) {
 			if (CONFIGS.feedback.strokeStyle === "black"){
 				CONFIGS.feedback.strokeStyle = "red";
 			}
@@ -1339,7 +1381,7 @@
 			updateJSON();
 			$(document).trigger("handler_resetAnnoUpdateStatus");
 			$(document).trigger("toolbar_updateAnnotationData");
-			
+			pushUndo();
 			
 			selectedPathsCurIndex = 0;
 			selectedPathsAnchorIndex = null;
