@@ -22,11 +22,10 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
-	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");
-	
+	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");	
 	var $snapZoneLabel = $("<p style='text-align:center;'>Snap Zone</p>");
 	
-	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value='1'/>");
 	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
 	
 	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
@@ -38,8 +37,6 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
 	
 	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
-	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
-	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
 	
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
@@ -183,7 +180,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
-					toolbarAppend($colorButtonList[n]);
+					toolbarAppend(colorButtonList[n]);
 				}
 				break;
 			case "EDIT":
@@ -193,14 +190,14 @@ var CanvasHandlerToolbar = function (parentContext) {
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
-					toolbarAppend($colorButtonList[n]);
+					toolbarAppend(colorButtonList[n]);
 				}
 				break;
 			case "CIRC":
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
-					toolbarAppend($colorButtonList[n]);
+					toolbarAppend(colorButtonList[n]);
 				}
 				break;
 			case "ANNO":

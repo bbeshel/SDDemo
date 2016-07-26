@@ -1282,7 +1282,7 @@
 		
 		
 		var changeLineColor = function(val){
-			if (CONFIGS.feedback.strokeStyle == "black"){
+			if (CONFIGS.feedback.strokeStyle === "black"){
 				CONFIGS.feedback.strokeStyle = "red";
 			}
 			switch(val){
