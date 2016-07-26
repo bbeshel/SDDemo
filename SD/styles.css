@@ -40,6 +40,10 @@
 	height: 25%;
 }
 
+.toolbarAnnoItemSelected {
+	background-color: #AA3333;
+}
+
 body {
 	background-color: #BADBAD;
 }

@@ -8,6 +8,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	self.MODE = "";
 	
+	var annoItemList = [];
+	
 	var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem'></select>");
 	
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
@@ -131,6 +133,11 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $buttonEdit.on("click", function () {
 			// changeCanvasMode("EDIT");
 		// });
+		$(document).on("toolbar_annoItemHighlight", function (e, annoIndex) {
+			console.log(annoIndex);
+			console.log(annoItemList);
+			annoItemHighlight(annoItemList[annoIndex]);
+		});
 		
 	};
 	
@@ -145,6 +152,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// }
 		// $jsonDisplay.val(string);
 		$jsonContainer.empty();
+		annoItemList = [];
 		var div;
 		var annos = chandlerParent.getCompletedPaths();
 		for (var i = 0; i < annos.length; i++) {
@@ -155,7 +163,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 				div.html(x);
 				console.log(annos[i].JSON);
 				div.path = annos[i];
-				setupAnnoClick(div);
+				setupAnnoEvents(div);
+				annoItemList.push(div);
 				$jsonContainer.append(div);
 			}
 		}
@@ -211,10 +220,26 @@ var CanvasHandlerToolbar = function (parentContext) {
 		toolbarModeInit();
 	};
 	
-	var setupAnnoClick = function (div) {
+	var setupAnnoEvents = function (div) {
 		div.on("click", function () {
 			$(document).trigger("toolbar_annoItemClick", [div.path]);
+			annoItemHighlight(div);
 		});
+	};
+	
+	var annoItemsDeHighlight = function () {
+		$(".toolbarAnnoItem").removeClass("toolbarAnnoItemSelected");
+	};
+	
+	var annoItemHighlight = function (div) {
+		annoItemsDeHighlight();
+		div.addClass("toolbarAnnoItemSelected");
+		var pos = $jsonContainer.scrollTop();
+		var elPos = div.position().top;
+		$jsonContainer.animate({
+			scrollTop: pos + elPos - 300
+		});
+		console.log(div.position().top);
 	};
 	
 	self.setDummyState = function () {

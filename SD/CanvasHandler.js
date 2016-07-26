@@ -86,7 +86,7 @@
 		var CONFIGS = {
 			anno : {
 				strokeStyle : "black",
-				lineWidth : 5
+				lineWidth : 1
 			},
 			feedback : {
 				strokeStyle : "red",
@@ -967,6 +967,8 @@
 			if (anchorList.length > 1) {
 				anoCx.beginPath();
 				anoCx.lineWidth = CONFIGS.anno.lineWidth;
+				console.log(anoCx.lineWidth);
+				console.log(CONFIGS.anno.lineWidth);
 				anoCx.strokeStyle = CONFIGS.anno.strokeStyle;
 				anoCx.moveTo(
 					anchorList.x[anchorList.length-2], 
@@ -1312,10 +1314,7 @@
 					break;
 			}
 		};
-		var changeLineWidth = function(val){
-			CONFIGS.anno.lineWidth = val;
-			//CONFIGS.feedback.lineWidth = val;
-		}
+		
 		
 		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {
@@ -1530,6 +1529,7 @@
 					console.log("Completed Sort.");
 					console.log(selectedPaths);
 					selectedPathsCurIndex = 0;
+					$(document).trigger("toolbar_annoItemHighlight", [selectedPaths[selectedPathsCurIndex].compIndex]);
 				} else {
 					return;
 				}
@@ -1575,6 +1575,7 @@
 			}
 			$(document).trigger("handler_canvasIntClear");
 			drawSelectedPathIndicator();
+			$(document).trigger("toolbar_annoItemHighlight", [selectedPaths[selectedPathsCurIndex].compIndex]);
 			
 			
 		};
