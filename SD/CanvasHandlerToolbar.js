@@ -38,7 +38,6 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
 	
 	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
-
 	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
 	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
 	
@@ -116,7 +115,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		});
 		
 		$blackColorButton.on("click", function(){
-			$(document).trigger("handler_changleLineColor", "black");
+			$(document).trigger("handler_changeLineColor", "black");
 		});
 		
 		$saveEditChanges.on("click", function () {
