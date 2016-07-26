@@ -93,6 +93,7 @@
 				lineWidth : 1,
 				cursorSize : 1
 			},
+			canvasScale : 1,
 			snapZone : 10,
 			canvasWidth : 0,
 			canvasHeight : 0,
@@ -317,11 +318,18 @@
 						console.log(this.bottommost);
 						//calculate xywh
 						//TODO: check if x[0] is actually the top-left point
+						var xywh = convertToNativeDimensions([
+							this.leftmost,
+							this.rightmost,
+							this.topmost,
+							this.bottommost
+						]);
+						
 						on += "#xywh=" 
-						+ this.leftmost + "," 
-						+ this.topmost + "," 
-						+ (this.rightmost - this.leftmost) + "," 
-						+ (this.bottommost - this.topmost);
+						+ xywh[0] + "," 
+						+ xywh[2] + "," 
+						+ (xywh[1] - xywh[0]) + "," 
+						+ (xywh[4] - xywh[3]);
 						
 						anno["on"] = on;
 						
@@ -399,6 +407,12 @@
 				changeLineWidth(data);
 			});
 			
+			$(document).on("handler_changeLineColor", function(e, data){
+				console.log(data);
+				changeLineColor(data);
+				console.log(CONFIGS.anno.strokeStyle);
+			});
+			
 			//Calls to save the changes made in edit mode
 			$(document).on("handler_saveEditChanges", function (e) {
 				saveEditChanges();
@@ -447,7 +461,7 @@
 			$(document).on("parser_annoDataRetrieved", function (e, data) {
 				console.log("FOUND ANNO DATA");
 				console.log(data);
-				CONFIGS.annotationList = jQuery.extend(true, {}, data);
+				// CONFIGS.annotationList = jQuery.extend(true, {}, data);
 				// convertAnnotations();
 				receivedDataCheck.annos = true;
 				// onAllDataRetrieved();
@@ -456,7 +470,7 @@
 			$(document).on("parser_canvasDataRetrieved", function (e, data) {
 				console.log("FOUND CANVAS DATA");
 				console.log(data);
-				CONFIGS.canvasData = jQuery.extend(true, {}, data);
+				// CONFIGS.canvasData = jQuery.extend(true, {}, data);
 				// setCanvasDimensions();
 				receivedDataCheck.canvas = true;
 				// onAllDataRetrieved();
@@ -468,7 +482,7 @@
 				//TODO: set canvas size based on parsed info, unless missing
 				//TODO: add variable image tag for onload based on parsed content
 				// var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
-				CONFIGS.canvasImageSrc = data;
+				// CONFIGS.canvasImageSrc = data;
 				// drawAndResizeImage();
 				receivedDataCheck.image = true;
 				// onAllDataRetrieved();
@@ -560,12 +574,15 @@
 		//Callback for when the parser has finished
 		var onAllDataRetrieved = function () {
 			alert("dat retriev");
-			
+			console.error("ALL DAT RET");
+			console.trace("ALL DAT RET");
 			
 			
 			if (receivedDataCheck.canvas) {
-				setCanvasDimensions();
+				var canv = parser.getCanvasJSON();
+				CONFIGS.canvasData = jQuery.extend(true, {}, canv);
 				CONFIGS.canvasId = parser.getCanvasId();
+				setCanvasDimensions();
 			} else {
 				//TODO: setup fallback here instead
 				var dummyCan = $.extend(true, {}, dummyCanvas);
@@ -575,6 +592,8 @@
 			}
 			
 			if (receivedDataCheck.image) {
+				var img = parser.getCanvasImage();
+				CONFIGS.canvasImageSrc = img;
 				drawAndResizeImage();
 			} else {
 				//TODO: fallback
@@ -583,6 +602,8 @@
 			}
 			
 			if (receivedDataCheck.annos) {
+				var annos = parser.getAnnotationListJSON();
+				CONFIGS.annotationList = jQuery.extend(true, {}, annos);
 				convertAnnotations();
 			} 
 			
@@ -594,7 +615,7 @@
 				tool.setDummyState();
 			}
 			
-				redrawCompletedPaths();
+			redrawCompletedPaths();
 			// setCanvasDimensions();
 			// drawAndResizeImage();
 			// drawAllCanvasAnnotations();
@@ -602,32 +623,52 @@
 		
 	
 		var setCanvasDimensions = function () {
+			
+			var size = {
+				width: window.innerWidth || document.body.clientWidth,
+				height: window.innerHeight || document.body.clientHeight
+			}
+			
 			//Grab the canvas dimensions from the parsed data
 			if (CONFIGS.canvasData != null) {
 				console.log("canvas data found");
-				var wid = CONFIGS.canvasData.width;
-				var hgt = CONFIGS.canvasData.height;
-				CONFIGS.canvasWidth = wid;
-				CONFIGS.canvasHeight = hgt;
+				CONFIGS.canvasWidth = CONFIGS.canvasData.width
+				CONFIGS.canvasHeight = CONFIGS.canvasData.height;
 			}
 			
 			//Canvas data exists with no dimensions
-			if (CONFIGS.canvasWidth !== 0) {
+			if (CONFIGS.canvasWidth === 0) {
 				// alert("aw snap");
-				var wid = CONFIGS.canvasWidth;
-				var hgt = CONFIGS.canvasHeight;
-			} else {
-				//fallback to default size
-				// alert("yo");
 				CONFIGS.canvasWidth = 1000;
-				CONFIGS.canvasHeight = 1000;				
-				var wid = CONFIGS.canvasWidth;
-				var hgt = CONFIGS.canvasHeight;
-			}
-				console.log(CONFIGS.canvasWidth);
-				console.log(CONFIGS.canvasHeight);
+				CONFIGS.canvasHeight = 1000;
+			} 
 			
+			console.log(CONFIGS.canvasWidth);
+			console.log(CONFIGS.canvasHeight);
 		
+		
+			var wid = CONFIGS.canvasWidth;
+			var hgt = CONFIGS.canvasHeight;
+			while (CONFIGS.canvasWidth < 600 && CONFIGS.canvasHeight < 400) {
+				CONFIGS.canvasScale++;
+				CONFIGS.canvasWidth = wid * CONFIGS.canvasScale;
+				CONFIGS.canvasHeight = hgt * CONFIGS.canvasScale;
+			}
+			
+			while (CONFIGS.canvasWidth > 1600 && CONFIGS.canvasHeight > 1000) {
+				if (CONFIGS.canvasScale > 1) {
+					CONFIGS.canvasScale--;
+				} else {
+					CONFIGS.canvasScale /= 2;
+				}
+				CONFIGS.canvasWidth = wid * CONFIGS.canvasScale;
+				CONFIGS.canvasHeight = hgt * CONFIGS.canvasScale;
+			}
+			
+			wid = CONFIGS.canvasWidth;
+			hgt = CONFIGS.canvasHeight;
+		
+			
 			imgCanvas.width = wid;
 			imgCanvas.height = hgt;
 			
@@ -720,6 +761,14 @@
 				y = Number(dims[1]);
 				w = Number(dims[2]);
 				h = Number(dims[3]);
+				
+				//convert to adjusted canvas scale
+				var ar = convertToAdjustedDimensions([x, y, w, h]);
+				x = ar[0];
+				y = ar[1];
+				w = ar[2];
+				h = ar[3];
+				
 				anchorList.clear();
 				anchorList.push(x, y);
 				anchorList.push((x + w), y);
@@ -751,10 +800,15 @@
 				var indEnd = charSub.search("\"");
 				var pointString = charSub.substring(0, indEnd);
 				var points = pointString.split(/[\s,]+/);
+				var ar;
 				//TODO: make sure the split worked
 				anchorList.clear();
 				for (var i = 0; i < points.length; i++) {
 					points[i] = Number(points[i]);
+					points[i+1] = Number(points[i+1]);
+					ar = convertToAdjustedDimensions([points[i], points[i+1]]);
+					points[i] = ar[0];
+					points[i+1] = ar[1];
 					anchorList.push(points[i], points[i+1]);
 					i++;
 				}
@@ -842,6 +896,28 @@
 			for (var i = 0; i < completedPaths.length; i++) {
 				completedPaths[i].needsUpdate = false;
 			};
+		};
+		
+		var convertToAdjustedDimensions = function (ar) {
+			for (var i = 0; i < ar.length; i++) {
+				if (typeof ar[i] === "number") {
+					ar[i] = ar[i] * CONFIGS.canvasScale;
+				} else {
+					console.error("Error scaling item: item was not a number");
+				}
+			}
+			return ar;
+		};
+		
+		var convertToNativeDimensions = function (ar) {
+			for (var i = 0; i < ar.length; i++) {
+				if (typeof ar[i] === "number") {
+					ar[i] = Math.round(ar[i] / CONFIGS.canvasScale);
+				} else {
+					console.error("Error scaling item: item was not a number");
+				}
+			}
+			return ar;
 		};
 		
 		//TODO: maybe convert the mouse coordinates to SC coordinates here?
@@ -977,6 +1053,9 @@
 			//Not sure if we need this width/height
 			//TODO: possibly set width/height to SC dims
 			//TODO: convert points to relative width/height of SC
+			anchors.x = convertToNativeDimensions(anchors.x);
+			anchors.y = convertToNativeDimensions(anchors.y);
+			
 			var str = svgPrefix +
 				"width=\"" + anchors.rightmost + "\" " + 
 				"height=\"" + anchors.bottommost + "\"" +
@@ -1194,6 +1273,7 @@
 			CONFIGS.snapZone = val;
 		};
 		
+
 		//Changes lineWidth in CONFIGS
 		var changeLineWidth = function(val){
 			CONFIGS.anno.lineWidth = val;
@@ -1232,6 +1312,10 @@
 					break;
 			}
 		};
+		var changeLineWidth = function(val){
+			CONFIGS.anno.lineWidth = val;
+			//CONFIGS.feedback.lineWidth = val;
+		}
 		
 		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {

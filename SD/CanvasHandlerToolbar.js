@@ -31,11 +31,16 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
 	var $redColorButton = $("<button class = 'redColorButton'>Red</button>");
-	var $yellowColorButton = $("<button class = 'yellowColorButton>Yellow></button>");
-	var $greenColorButton = $("<button class = 'greenColorButton>Green</button>");
+	var $yellowColorButton = $("<button class = 'yellowColorButton'>Yellow</button>");
+	var $greenColorButton = $("<button class = 'greenColorButton'>Green</button>");
 	var $blueColorButton = $("<button class =' blueColorButton'>Blue</button>");
 	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
+	
+	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value'10'/>");
+	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
+	
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
@@ -62,12 +67,14 @@ var CanvasHandlerToolbar = function (parentContext) {
 		$toolDiv.append($opModeSelector);
 		$toolDiv.append($snapZoneLabel);
 		$toolDiv.append($snapZoneSlider);
-		//TODO: Add labels over snapZoneSlider and lineWidth Slider
 		$toolDiv.append($lineWidthLabel);
 		$toolDiv.append($lineWidthSlider);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($lineColorLabel);
-		$toolDiv.append($redColorButton);
+		for (n in colorButtonList){
+			$toolDiv.append(colorButtonList[n]);
+			console.log(colorButtonList[n]);
+		}
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
@@ -85,17 +92,31 @@ var CanvasHandlerToolbar = function (parentContext) {
 		$lineWidthSlider.on("change", function(){
 			var val = parseInt($lineWidthSlider.val());
 			$(document).trigger("handler_changeLineWidth", [val]);
-			console.log("Line Width Changed. Here is the new one:");
-			console.log(val);
-			
-			
 		});
 		
 		$redColorButton.on("click", function(){
-			$(document).trigger("handler_changeLineColor, 'red' ");
+			$(document).trigger("handler_changeLineColor", "red");
 		});
 		
+		$yellowColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor", "yellow");
+		});
 		
+		$greenColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor", "green");
+		});
+		
+		$blueColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor", "blue");
+		});
+		
+		$whiteColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor", "white");
+		});
+		
+		$blackColorButton.on("click", function(){
+			$(document).trigger("handler_changleLineColor", "black");
+		});
 		
 		$saveEditChanges.on("click", function () {
 			$(document).trigger("handler_saveEditChanges");
@@ -161,6 +182,9 @@ var CanvasHandlerToolbar = function (parentContext) {
 				toolbarAppend($snapZoneSlider);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
+				for (n in colorButtonList){
+					toolbarAppend($colorButtonList[n]);
+				}
 				break;
 			case "EDIT":
 				toolbarAppend($saveEditChanges);
@@ -168,10 +192,16 @@ var CanvasHandlerToolbar = function (parentContext) {
 			case "RECT":
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
+				for (n in colorButtonList){
+					toolbarAppend($colorButtonList[n]);
+				}
 				break;
 			case "CIRC":
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
+				for (n in colorButtonList){
+					toolbarAppend($colorButtonList[n]);
+				}
 				break;
 			case "ANNO":
 				break;
