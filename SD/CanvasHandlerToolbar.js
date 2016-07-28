@@ -217,7 +217,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	//removes all associated tool elements except the opModeSelector
 	var toolbarClear = function () {
 		// console.log($toolDiv.slice);
-		$toolDiv.children().not(".permament").detach();
+		$toolDiv.children().not(".permanent").detach();
 	};
 	
 	var toolbarModeInit = function () {

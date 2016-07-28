@@ -1,49 +1,49 @@
 	var JSONparser = function (context) {
 		var self = this;
 		
+		//takes the context of the parent
 		var parent = context;
 		
-		
-		var $curCont = $("<div>");
-		var $curImg = $("<div>");
-		var $curAno = $("<div>");
-		var curTextLine = "";
+		//The previous URL (attempt to reduce resolving the same link)
 		var lastURL = "";
+		//URL to the annotationList
 		var anoListURL = "";
-		var canvasURL = "";
-		//var insideAnnoList = false; 
-		var annoNumber = 0;
-		var canvJSON;
-		var annoJSON;
-		var canvImg;
+		//url id to the canvas
 		var canvId;
+		//full JSON for sc:Canvas
+		var canvJSON;
+		//full JSON for sc:AnnotationList
+		var annoJSON;
+		//URL to image to be drawn
+		var canvImg;
 		
+		//Recurse iterator to help notify when parsing is done
 		var recurseIter = 0;
-
-
-		//Handles the storage of information
-		var storageHandler = function(unstoredObject){
-			curTextLine += unstoredObject;
-		}
 		
-		//Checks objects from the canvas 
+		/*Recursive. Parses through an entire JSON, pulling out
+		* important data relevant to the SharedCanvas.
+		* @param canvasObject	JSON object
+		* @param retTextBool	(non-functional) bool if returning specific text
+		* @return retString		string of desired anno comments
+		*/
 		self.basicCheck = function(canvasObject, retTextBool) {
 			recurseIter++;
 			
+			//Check if the key is a SharedCanvas
 			if (canvasObject["@type"] === "sc:Canvas") {
 				handleURL(canvasObject["@id"]);
 				canvId = canvasObject["@id"];
 			}
+			//Check if the key is an AnnotationList
 			if (canvasObject["@type"] === "sc:AnnotationList") {
 				if (canvasObject.hasOwnProperty("on") && canvId == null) {
 					canvId = canvasObject["on"];
 				}
-				// $textOb = $curAno;
 				handleURL(canvasObject["@id"]);
-				}
+			}
 				
-			if (canvasObject["@type"] === "dctypes:Image") {
-				
+			//Check if the key is an image 
+			if (canvasObject["@type"] === "dctypes:Image") {				
 				//here we are detecting for two different acceptable models for images
 				if (canvasObject.hasOwnProperty("resource")) {
 					handleURL(canvasObject["resource"]["@id"]);
@@ -51,40 +51,29 @@
 					handleURL(canvasObject["@id"]);
 				}
 			}
+			
 			for (n in canvasObject){
-				
-				/* Slashed out curTextLine lines and textline lines will cause the  program to
-				 display all attributes of a canvas instead of just certain ones from annotations.*/
+				//Recurse if it is an object or an array
 				if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
 						self.basicCheck(canvasObject[n], retTextBool);				
 				} 
+				//Else, handle particular cases if valid value
 				else if (validChecker(canvasObject[n]) === true){
+					//If we are adding and returning annotation comments...
 					if (retTextBool){
 						if (retString == null) {
 							var retString = "";
 						}
+						//Make it lower case to cover more cases
 						var val = n.toLowerCase();
 						if (val === "label" || val === "cnt:chars" || val === "chars") {
 							switch(val) {
-						
-								// if(canvasObject[n] == "oa:Annotation"){
-									// curTextLine += "Annotation " + annoNumber.toString();
-									// curTextLine += ("<br />");
-									// textline(curTextLine, $textOb, 1);
-									// annoNumber += 1;
-								// }
-								// break;
-								
 								case "label":
 								retString += "Label: " + canvasObject[n];
-								// curTextLine += ("<br />");
-								// textline(curTextLine, $textOb);
 								break;
 								
 								case "cnt:chars":
 								retString += "Text: " + canvasObject[n];
-								// curTextLine += ("<br />");
-								// textline(curTextLine, $textOb);
 								break;
 								
 								case "chars":
@@ -94,39 +83,31 @@
 							
 							}
 						}
-						// storageHandler(n); -->
-						//curTextLine += n + ": ";
-						//curTextLine += canvasObject[n];
-						//textline(curTextLine, $textOb);
-						// curTextLine +=("<br />"); -->
 					}
 				}
 				else {
 					//Item was blank
 				}
-			//}
 			}
 			if (retString != null && retString.length > 0) {
 				return retString;
 			}
 			
 			recurseIter--;
-			
+
 		};
 		
-
-
+		/*Checks to see if the JSON key-value pair are validChecker
+		* @param objectValue	the value to be checked
+		* @return bool	
+		*/
 		var validChecker = function(objectValue){
 			if (objectValue == null){
 				return false;
 			}
 
 			else if (typeof objectValue === 'string'){
-				// objectValue.trim(); -->
 				if (objectValue.length > 0){
-					if (objectValue.substring(0, 4) === "http") {
-						// handleURL(objectValue);
-					}
 					return true;
 				}
 			}
@@ -138,15 +119,18 @@
 			else if (typeof objectValue === 'boolean'){
 				return true;
 			}
+			else {
+				return false;
+			}
 		};
 			
 
-		//Parses the canvas in order to obtain necessary data for redrawing the canvas
-		//How information will be parsed depends on the type of canvas
+		/*Parses the canvas in order to obtain necessary data for redrawing the canvas
+		*How information will be parsed depends on the type of canvas
+		* @param jsontext	stringified json passed in or resolved from URL
+		*/
 		var canvasParser = function(jsontext){
-			// var text = canvas.responseText; -->
 			var parsedCanv = JSON.parse(jsontext);
-			console.log(parsedCanv);
 			var type = parsedCanv["@type"];
 			//TODO: handle character case
 			if (type === "sc:AnnotationList") {
@@ -154,9 +138,7 @@
 				annoJSON = jQuery.extend(true, {}, parsedCanv);
 				$(document).trigger("parser_annoDataRetrieved", [annoJSON]);
 				self.basicCheck(parsedCanv);
-				//insideAnnoList = false;
 			} else if (type === "sc:Canvas") {
-				canvasURL = parsedCanv["@id"];
 				//deep copy the object for use later
 				canvJSON = jQuery.extend(true, {}, parsedCanv);
 				$(document).trigger("parser_canvasDataRetrieved", [canvJSON]);
@@ -165,9 +147,10 @@
 				alert('Handled json does not have expected type "sc:Canvas" or "sc:AnnotationList');
 			}
 		};
-
-
-
+		
+		/*If url is found, resolves it and then begins to parse further
+		* @param url 	the url to resolve
+		*/
 		var resolveCanvasURL = function (url) {
 			recurseIter++;
 			var aThing = $.getJSON(url, function() {
@@ -178,19 +161,27 @@
 				recurseIter--;
 				}
 			).fail( function() {
-				alert("A problem has been found. Cannot display image.");
+				alert("A problem has been found. Cannot resolve URL in JSON.");
 				}
 			);
 		};
 		
+		/*Determines data flow depending on data type of 
+		* data entered from the text area on initialization
+		* @param text	the string to be evaluated
+		*/
 		var evaluateData = function (text) {
 			if (isURL(text)) {
 				resolveCanvasURL(text);
 			} else {
-				resolveJSON(text);
+				canvasParser(text);
 			}
 		};
 		
+		/*simple check to see if the string is a URL
+		* @param text	string to be checked
+		* @return bool
+		*/
 		var isURL = function (text) {
 			if (text.substring(0, 4) == "http") {
 				return true;
@@ -199,13 +190,16 @@
 			}
 		};
 		
-		
+		/*Handles a url and handles it if it is an image or other
+		* @param url	the url to be checked and handled
+		* @return 
+		*/
 		var handleURL = function (url) {
 			//test if url first (basic test)
 			var result = isURL(url);
 			if (anoListURL === url) {
 				return;
-			} else if (canvasURL === url) {
+			} else if (canvId === url) {
 				return;
 			}
 			
@@ -219,57 +213,21 @@
 					}
 					resolveImage(url);
 				} else {
-					// alert("Found a URL, but could not identify it!"); -->
-					// console.log(url); -->
 					resolveCanvasURL(url);
 				}
 			}
-			insideAnnoList = false;			
 		};
 		
+		/*Sets the canvImg var to the link found, then notifies the handler
+		* @param imgUrl	string that is a url to the image
+		*/
 		var resolveImage = function (imgUrl) {
 			canvImg = imgUrl;
 			$(document).trigger("parser_imageDataRetrieved", [canvImg]);
-			// var $img = $("<img src='" + imgUrl + "' />");
-			// console.log("attempt to resolve image url");
-			// $img.on("load", function () {
-				// //TODO: display the image somewhere here!
-				// console.log("attempt image append");
-				// // $curImg.append(img);
-				// canvImg = imgUrl;
-				// console.log (canvImg);
-				// $(document).trigger("parser_imageDataRetrieved", [canvImg]);
-				
-			// })
-			// .on("error", function () {
-				// alert("Could not retrieve image data!");
-			// });
 		};
 		
-		var resolveJSON = function (text, $box) {
-			// clearArea();
-			canvasParser(text);
-			console.trace("this");
-		};
-		
-		var textline = function (text, $box, bool) {
-			if (bool){
-				var para = "<p class='colorChange'>"
-			}
-			else{
-			var para = "<p>";
-			}
-			$box.append(para + text + "</p>");
-			curTextLine = "";
-		};
-		
-		var clearArea = function () {
-			$curCont.empty();
-			$curImg.empty();
-			curTextLine = "";
-			lastURL = "";
-		};
-		
+		/*Checks every second to see if the recursion is finished for dispatch
+		*/
 		var checkCompletionStatus = function () {
 			setTimeout(function () {
 				if (recurseIter === 0) {
@@ -280,6 +238,9 @@
 			}, 1000);
 		};
 		
+		/*Getter for annoJSON
+		* @return annoJSON
+		*/
 		self.getAnnotationListJSON = function () {
 			if (annoJSON == null) {
 				return;
@@ -287,6 +248,9 @@
 			return annoJSON;
 		};
 		
+		/*Getter for annoJSON
+		* @return annoJSON
+		*/
 		self.getCanvasJSON = function () {
 			if (canvJSON == null) {
 				return;
@@ -294,6 +258,9 @@
 			return canvJSON;
 		};
 		
+		/*Getter for canvImg
+		* @return canvImg
+		*/
 		self.getCanvasImage = function () {
 			if (canvImg == null) {
 				return;
@@ -301,6 +268,9 @@
 			return canvImg;
 		};
 		
+		/*Getter for canvId
+		* @return canvId
+		*/
 		self.getCanvasId = function () {
 			if (canvId == null) {
 				return;
@@ -308,12 +278,10 @@
 			return canvId;
 		};
 		
+		/*Other modules can call this to begin parsing
+		*/
 		self.requestData = function (data) {
 			evaluateData(data);
 			checkCompletionStatus();
 		};
-
-		//Some tests, to be deleted later
-		var exampleCanv = "http://165.134.241.141/annotationstore/annotation/55f9da84e4b04dde25a2734c";
-		// evaluateData(exampleCanv);
 	};
