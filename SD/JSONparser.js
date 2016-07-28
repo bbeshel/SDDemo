@@ -27,7 +27,7 @@
 		}
 		
 		//Checks objects from the canvas 
-		var basicCheck = function(canvasObject, $textOb){
+		self.basicCheck = function(canvasObject, retTextBool) {
 			recurseIter++;
 			
 			if (canvasObject["@type"] === "sc:Canvas") {
@@ -38,7 +38,7 @@
 				if (canvasObject.hasOwnProperty("on") && canvId == null) {
 					canvId = canvasObject["on"];
 				}
-				$textOb = $curAno;
+				// $textOb = $curAno;
 				handleURL(canvasObject["@id"]);
 				}
 				
@@ -56,45 +56,43 @@
 				/* Slashed out curTextLine lines and textline lines will cause the  program to
 				 display all attributes of a canvas instead of just certain ones from annotations.*/
 				if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
-						basicCheck(canvasObject[n], $textOb);				
-				} else if (validChecker(canvasObject[n]) === true){
-					if ($textOb == $curAno){
-						switch(n){
-							case "@type":
+						self.basicCheck(canvasObject[n], retTextBool);				
+				} 
+				else if (validChecker(canvasObject[n]) === true){
+					if (retTextBool){
+						if (retString == null) {
+							var retString = "";
+						}
+						var val = n.toLowerCase();
+						if (val === "label" || val === "cnt:chars" || val === "chars") {
+							switch(val) {
 						
-								if(canvasObject[n] == "oa:Annotation"){
-									curTextLine += "Annotation " + annoNumber.toString();
-									curTextLine += ("<br />");
-									textline(curTextLine, $textOb, 1);
-									annoNumber += 1;
-								}
-								break;
+								// if(canvasObject[n] == "oa:Annotation"){
+									// curTextLine += "Annotation " + annoNumber.toString();
+									// curTextLine += ("<br />");
+									// textline(curTextLine, $textOb, 1);
+									// annoNumber += 1;
+								// }
+								// break;
 								
 								case "label":
-								curTextLine += "Label: " + canvasObject[n];
-								curTextLine += ("<br />");
-								textline(curTextLine, $textOb);
+								retString += "Label: " + canvasObject[n];
+								// curTextLine += ("<br />");
+								// textline(curTextLine, $textOb);
 								break;
 								
 								case "cnt:chars":
-								curTextLine += "Text: " + canvasObject[n];
-								curTextLine += ("<br />");
-								textline(curTextLine, $textOb);
+								retString += "Text: " + canvasObject[n];
+								// curTextLine += ("<br />");
+								// textline(curTextLine, $textOb);
 								break;
 								
-								/*case "forProject":
-								curTextLine += "For: " + canvasObject[n];
-								curTextLine += ("<br />");
-								textline(curTextLine, $textOb);
+								case "chars":
+								retString += "Chars: " + canvasObject[n];
 								break;
-								
-								case "@id":
-								curTextLine += "ID: " + canvasObject[n];
-								curTextLine += ("<br />");
-								textline(curTextLine, $textOb);
-								break;
-								*/
+								default:
 							
+							}
 						}
 						// storageHandler(n); -->
 						//curTextLine += n + ": ";
@@ -102,11 +100,16 @@
 						//textline(curTextLine, $textOb);
 						// curTextLine +=("<br />"); -->
 					}
-				} else {
+				}
+				else {
 					//Item was blank
 				}
 			//}
 			}
+			if (retString != null && retString.length > 0) {
+				return retString;
+			}
+			
 			recurseIter--;
 			
 		};
@@ -150,14 +153,14 @@
 				anoListURL = parsedCanv["@id"];
 				annoJSON = jQuery.extend(true, {}, parsedCanv);
 				$(document).trigger("parser_annoDataRetrieved", [annoJSON]);
-				basicCheck(parsedCanv, $curAno);
+				self.basicCheck(parsedCanv);
 				//insideAnnoList = false;
 			} else if (type === "sc:Canvas") {
 				canvasURL = parsedCanv["@id"];
 				//deep copy the object for use later
 				canvJSON = jQuery.extend(true, {}, parsedCanv);
 				$(document).trigger("parser_canvasDataRetrieved", [canvJSON]);
-				basicCheck(parsedCanv, $curCont);
+				self.basicCheck(parsedCanv);
 			} else {
 				alert('Handled json does not have expected type "sc:Canvas" or "sc:AnnotationList');
 			}

@@ -6,19 +6,25 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var self = this;
 	
+	
+	self.OPTIONS = {
+		jsonView : true
+	};
+		
+	
 	self.MODE = "";
 	
 	var annoItemList = [];
 	
-	var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem'></select>");
+	var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem permanent'></select>");
 	
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
 	// var jsonItemString = "<div class='toolbarAnnoItem'></div>";
 	// var jsonItemString = "<p class='toolbarAnnoItem'></p>";
-	var jsonItemString = "<textarea readonly class='toolbarAnnoItem'></textarea>";
+	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
 	
-	var $jsonContainer = $("<div class='toolbarItem' id='jsonDisplayContainer'></div>");
+	var $jsonContainer = $("<div class='toolbarItem permanent' id='jsonDisplayContainer'></div>");
 	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
@@ -38,7 +44,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
 	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
 	
-	var $undoButton = $("<button id='undoButton' class='toolbarItem'>Undo Draw</button>");
+	var $undoButton = $("<button id='undoButton' class='toolbarItem permanent'>Undo Draw</button>");
 	
 	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
 	
@@ -46,6 +52,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
 	var $exportData = $("<button id='exportData' class='toolbarItem'>Export as JSON</button>");
+	
+	var $debugViewCheckbox = $('<input id="debugViewCheckbox" class="toolbarItem permanent" type="checkbox" name="Debug View" />');
 	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
@@ -71,6 +79,9 @@ var CanvasHandlerToolbar = function (parentContext) {
 		$toolDiv.append($lineWidthLabel);
 		$toolDiv.append($lineWidthSlider);
 		$toolDiv.append($undoButton);
+		//TODO: the text only mode doesnt work, readd when fixed
+		// $toolDiv.append($debugViewCheckbox);
+		$debugViewCheckbox.prop('checked', true);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($lineColorLabel);
 		for (n in colorButtonList){
@@ -128,6 +139,14 @@ var CanvasHandlerToolbar = function (parentContext) {
 			$(document).trigger("handler_execUndo");
 		});
 		
+		$debugViewCheckbox.on("change", function () {
+			if ($debugViewCheckbox.is(":checked")) {
+				self.OPTIONS.jsonView = true;
+			} else {
+				self.OPTIONS.jsonView = false;
+			}
+		});
+		
 		
 		
 		$(document).on("toolbar_changeOperationMode", function (e, data) {
@@ -162,13 +181,27 @@ var CanvasHandlerToolbar = function (parentContext) {
 		annoItemList = [];
 		var div;
 		var annos = chandlerParent.getCompletedPaths();
-		for (var i = 0; i < annos.length; i++) {
-			if (annos[i].JSON != null) {
+		if (self.OPTIONS.jsonView) {
+			for (var i = 0; i < annos.length; i++) {
+				if (annos[i].JSON != null) {
+					div = $(jsonItemString);
+					var x = annos[i].JSON;
+					x = x.replace(/\\"/g, '"');
+					div.html(x);
+					console.log(annos[i].JSON);
+					div.path = annos[i];
+					setupAnnoEvents(div);
+					annoItemList.push(div);
+					$jsonContainer.append(div);
+				}
+			}
+		} else {
+			for (var i = 0; i < annos.length; i++) {
 				div = $(jsonItemString);
 				var x = annos[i].JSON;
 				x = x.replace(/\\"/g, '"');
-				div.html(x);
-				console.log(annos[i].JSON);
+				var comments = annos[i].getAnnoComments();
+				div.html(comments);
 				div.path = annos[i];
 				setupAnnoEvents(div);
 				annoItemList.push(div);
@@ -184,7 +217,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	//removes all associated tool elements except the opModeSelector
 	var toolbarClear = function () {
 		// console.log($toolDiv.slice);
-		$toolDiv.children().not("#undoButton").not(".toolbarAnnoItem").not($opModeSelector).not($jsonContainer).detach();
+		$toolDiv.children().not(".permament").detach();
 	};
 	
 	var toolbarModeInit = function () {

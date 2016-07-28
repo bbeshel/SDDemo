@@ -281,7 +281,6 @@
 						this.bottommost = this.y[i];
 					}
 				}
-				
 			},
 			getBoundingBoxArea: function () {
 				return Math.abs(this.rightmost - this.leftmost) * Math.abs(this.bottommost - this.topmost);
@@ -344,7 +343,20 @@
 					default:
 					
 				}
-			}
+			},
+			//TODO: currently doesn't work, recursion etc...
+			getAnnoComments : function () {
+				if (this.JSON == null) {
+					return "(No text associated)";
+				} else {
+					var anno = JSON.parse(this.JSON);
+					var str = "";
+					str = parser.basicCheck(anno, true);
+					console.log(str);
+					return str;
+					
+				}
+			},
 		};
 		
 	
