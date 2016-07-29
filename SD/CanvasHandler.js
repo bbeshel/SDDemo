@@ -35,6 +35,7 @@
 		var dummyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:Painting",
+		    "sandbox" : "bbeshel",
 			"resource" : {
 				"@type" : "cnt:ContentAsText",
 				"cnt:chars" : ""
@@ -45,6 +46,7 @@
 		var dummyPolyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:painting",
+			"sandbox" : "bbeshel",	
 			"resource" : {
 				"@type" : "oa:SpecificResource",
 				"selector" : {
@@ -60,6 +62,7 @@
           "@id" : "http://www.example.org/dummy/canvas/",
           "@type" : "sc:Canvas",
           "label" : "dummy canvas",
+		  "sandbox" : "bbeshel",
           "height" : 1000,
           "width" : 1000,
           "images" : [{

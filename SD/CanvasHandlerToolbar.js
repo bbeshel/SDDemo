@@ -31,18 +31,18 @@ var CanvasHandlerToolbar = function (parentContext) {
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
 	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");	
-	var $snapZoneLabel = $("<p style='text-align:center;'>Snap Zone</p>");
+	var $snapZoneLabel = $("<p class = 'permament' style='text-align:center;'>Snap Zone</p>");
 	
-	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='toolbarItem' type = 'range' min='1' max='8' step='1' value='1'/>");
-	var $lineWidthLabel = $("<p style='text-align:center;'>Line Width</p>");
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='permanent toolbarItem' type = 'range' min='1' max='8' step='1' value='1'/>");
+	var $lineWidthLabel = $("<p class = 'permanent' style='text-align:center;'>Line Width</p>");
 	
 	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
-	var $redColorButton = $("<button class = 'redColorButton'>Red</button>");
-	var $yellowColorButton = $("<button class = 'yellowColorButton'>Yellow</button>");
-	var $greenColorButton = $("<button class = 'greenColorButton'>Green</button>");
-	var $blueColorButton = $("<button class =' blueColorButton'>Blue</button>");
-	var $whiteColorButton = $("<button class = 'whiteColorButton'>White</button>");
-	var $blackColorButton = $("<button class = 'blackColorButton'>Black</button>");
+	var $redColorButton = $("<button    class = 'permanent redColorButton'>Red</button>");
+	var $yellowColorButton = $("<button class = 'permanent yellowColorButton'>Yellow</button>");
+	var $greenColorButton = $("<button  class = 'permanent greenColorButton'>Green</button>");
+	var $blueColorButton = $("<button   class =' permanent blueColorButton'>Blue</button>");
+	var $whiteColorButton = $("<button  class = 'permanent whiteColorButton'>White</button>");
+	var $blackColorButton = $("<button  class = 'permanent blackColorButton'>Black</button>");
 	
 	var $undoButton = $("<button id='undoButton' class='toolbarItem permanent'>Undo Draw</button>");
 	
