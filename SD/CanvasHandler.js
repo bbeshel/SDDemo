@@ -32,6 +32,12 @@
 			"Annotate"
 		];
 		
+		var dummyAnnoPointer = {
+			"@id" : null,
+			"@type" : "oa:Annotation",
+			"sandbox" : "bbeshel"
+		};
+		
 		var dummyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:Painting",
@@ -107,8 +113,9 @@
 			snapZone : 10,
 			canvasWidth : 0,
 			canvasHeight : 0,
+			newAnnotationList : null,
 			canvasImageSrc : null,
-			annotationList : null,
+			annotationLists : null,
 			canvasData : null,
 			canvasId : null
 		};
@@ -165,6 +172,10 @@
 		var canvasDimensionsChecks = 0;
 		
 		var dimensionCheckLimit = 1;
+		
+		var ajaxWaitState = false;
+		
+		var ajaxRequestQueue = [];
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -452,6 +463,10 @@
 				resetAnnoUpdateStatus();
 			});
 			
+			$(document).on("handler_ajaxComplete", function () {
+				requestAjax();
+			});
+			
 			$(document).on("handler_exportAllDataJSON", function () {
 				//TODO: do not use this until we have checks for each annotation
 				/*currently only throws together the .JSON versions 
@@ -462,56 +477,18 @@
 				var posturl, params;
 				//TODO: loop through otherContent
 				//TODO: update all the local json with the updated version from the server
-				for (var j = 0; j < CONFIGS.canvasData["otherContent"].length; j++) {
+					
+				//TODO: save new annotations, new annotation lists
+					
+				updateAllAnnotations();
 					
 					
-					
-					for (var i = 0; i < completedPaths.length; i++) {
-						console.log(completedPaths[i].JSON);
-						//TODO: check if valid JSON first
-						var json = JSON.parse(completedPaths[i].JSON);
-					
-						// params = JSON.stringify(CONFIGS.canvasData.otherContent);
-						
-						// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
-						// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
-						
-						// $.ajax({
-							// url: posturl,
-							// type: "POST",
-							// dataType: "json",
-							// crossDomain: true,
-						// })
-						// .done(function (data) {
-							// console.log(data);
-						// })
-						// .fail(function (xhr, status, errorThrown) {
-							// console.log(status);
-							// console.log(errorThrown);
-						// });
-						CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
-					}
-					
-					//last, check if this annolist has an id
-					if (!CONFIGS.canvasData["otherContent"][j].hasOwnProperty("@id")) {
-						
-						params = JSON.stringify(CONFIGS.canvasData["otherContent"][j]);
-						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
-						$.ajax({
-							url: posturl,
-							type: "POST",
-							dataType: "json",
-							crossDomain: true,
-						})
-						.done(function (data) {
-							console.log(data);
-						})
-						.fail(function (xhr, status, errorThrown) {
-							console.log(status);
-							console.log(errorThrown);
-						});
-					}
-				}
+				
+				updateAllAnnotationLists();
+				
+				
+				
+				
 				
 				$(document).trigger("handler_resetAnnoUpdateStatus");
 				
@@ -844,6 +821,7 @@
 				anchorList.type = "RECT";
 				anchorList.annoListIndex = annoListIndex;
 				anchorList.annoIndex = annoIndex;
+				anchorList.annoId = annotation["@id"];
 				// TODO: determine the position in the anno list?
 				// anchorList.annoListIndex =
 				// drawRectalinearAnnotation(dims);
@@ -887,6 +865,7 @@
 				anchorList.type = "POLY";
 				anchorList.annoListIndex = annoListIndex;
 				anchorList.annoIndex = annoIndex;
+				anchorList.annoId = annotation["@id"];
 				anchorList.JSON = JSON.stringify(annotation);
 				var curList = jQuery.extend(true, {}, anchorList);
 				completedPaths.push(curList);
@@ -971,6 +950,7 @@
 			};
 		};
 		
+		
 		var pushUndo = function () {
 			
 			if (undoList.length > CONFIGS.undoLimit) {
@@ -982,7 +962,41 @@
 			console.log(undoList);
 		};
 		
-		var saveNewAnnotation = function () {
+		var requestAjax = function () {
+			
+			setTimeout(function () {
+				if (!ajaxWaitState) {
+					execAjax(ajaxRequestQueue.shift());
+					requestAjax();
+				}
+				if (ajaxRequestQueue.length > 0) {
+					requestAjax();
+				} else {
+					$(document).trigger("handler_ajaxComplete");
+				}
+			}, 10);
+		};
+		
+		var execAjax = function (posturl) {
+				ajaxWaitState = true;
+				$.ajax({
+					url: posturl,
+					type: "POST",
+					dataType: "json",
+					crossDomain: true,
+				})
+				.done(function (data) {
+					console.log(data);
+					ajaxWaitState = false;
+				})
+				.fail(function (xhr, status, errorThrown) {
+					console.log(status);
+					console.log(errorThrown);
+				});
+			 
+		};
+		
+		var saveNewAnnotations = function () {
 			
 		};
 		
@@ -990,7 +1004,95 @@
 			
 		};
 		
-		var updateAnnotation = function () {
+		var updateAllAnnotations = function () {
+			var posturl, params;
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].needsUpdate) {
+					console.log(completedPaths[i].JSON);
+					//TODO: check if valid JSON first
+					var json = JSON.parse(completedPaths[i].JSON);
+				
+					params = JSON.stringify(json);
+					
+					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
+					posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+					ajaxRequestQueue.push(posturl);
+					
+					completedPaths[i].needsUpdate = false;
+					// $.ajax({
+						// url: posturl,
+						// type: "POST",
+						// dataType: "json",
+						// crossDomain: true,
+					// })
+					// .done(function (data) {
+						// console.log(data);
+					// })
+					// .fail(function (xhr, status, errorThrown) {
+						// console.log(status);
+						// console.log(errorThrown);
+					// });
+					// CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
+				}
+			}
+					
+			requestAjax();
+			updateLocalAnnotationJSON();
+		};
+		
+		var updateAnnotationList = function (curAnoListIndex) {
+			//check if it has the proper structure
+			if (!CONFIGS.annotationLists[curAnoListIndex].hasOwnProperty("resources") {
+				alert("couldnt find the resources field in annotation list");
+				console.log(CONFIGS.annotationLists[curAnoListIndex]);
+				return;
+			}
+			// CONFIGS.annotationLists[curAnoListIndex]["resources"] = [];
+			
+			//loop through and add new annotations to the list
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].annoListIndex === curAnoListIndex) {
+					var annoIsInList = false;
+					for (var j = 0; j < CONFIGS.annotationLists[i]["resources"].length; j++) {
+						if (CONFIGS.annotationLists[i]["resources"][j]["@id"] === completedPaths[i].annoId) {
+							annoIsInList = true;
+						}
+					}
+					if (!annoIsInList) {
+						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
+						anoPointer["@id"] = completedPaths[i].annoId;
+						CONFIGS.annotationLists[i]["resources"].push(anoPointer);
+					}
+				}
+			}
+			console.log(CONFIGS.annotationLists[curAnoListIndex]);
+			
+			
+			//last, check if this annolist has an id
+			// if (!CONFIGS.annotationLists[j].hasOwnProperty("@id")) {
+				
+				// params = JSON.stringify(CONFIGS.annotationLists[j]);
+				// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+				// ajaxRequestQueue.push(posturl);
+			// }
+			
+			
+			params = JSON.stringify(CONFIGS.annotationLists[curAnoListIndex]);
+			posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+			execAjax(posturl);
+			
+			
+			//TODO: update with posturl
+		};
+		
+		var updateAllAnnotationLists = function () {
+			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
+				updateAnnotationList(i);
+			}
+			// requestAjax();
+		};
+		
+		var updateLocalAnnotationJSON = function () {
 			
 		};
 		
@@ -1126,6 +1228,7 @@
 				console.log(anchorList.type);
 				anchorList.generateJSON();
 				console.log(anchorList);
+				anchorList.needsUpdate = true;
 				// completedPaths.push(clone(anchorList));
 				var an = $.extend(true, {}, anchorList);
 				completedPaths.push(an)
