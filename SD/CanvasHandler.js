@@ -57,6 +57,12 @@
 			"on" : null
 		};
 		
+		var dummyAnnotationList = {
+			"@type" : "sc:AnnotationList",
+			"sandbox" : "bbeshel",
+			"resources" : []
+		};
+		
 		var dummyCanvas = {
       //This will be the anchor canvas in the anchor range
           "@id" : "http://www.example.org/dummy/canvas/",
@@ -231,6 +237,8 @@
 			topmost: 100000,
 			bottommost: 0,
 			annoListIndex: -1,
+			annoIndex: -1,
+			annoId: null,
 			type: null,
 			JSON: null,
 			needsUpdate: false,
@@ -450,31 +458,60 @@
 				of each anchorList annotation in a list and adds them to the 
 				CONFIGS.canvasData, then sends the request to the server
 				*/
-				for (var i = 0; i < completedPaths.length; i++) {
-					console.log(completedPaths[i].JSON);
-					//TODO: check if valid JSON first
-					var j = JSON.parse(completedPaths[i].JSON);
-					CONFIGS.canvasData["otherContent"].push(j);
+				
+				var posturl, params;
+				//TODO: loop through otherContent
+				//TODO: update all the local json with the updated version from the server
+				for (var j = 0; j < CONFIGS.canvasData["otherContent"].length; j++) {
+					
+					
+					
+					for (var i = 0; i < completedPaths.length; i++) {
+						console.log(completedPaths[i].JSON);
+						//TODO: check if valid JSON first
+						var json = JSON.parse(completedPaths[i].JSON);
+					
+						// params = JSON.stringify(CONFIGS.canvasData.otherContent);
+						
+						// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
+						// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+						
+						// $.ajax({
+							// url: posturl,
+							// type: "POST",
+							// dataType: "json",
+							// crossDomain: true,
+						// })
+						// .done(function (data) {
+							// console.log(data);
+						// })
+						// .fail(function (xhr, status, errorThrown) {
+							// console.log(status);
+							// console.log(errorThrown);
+						// });
+						CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
+					}
+					
+					//last, check if this annolist has an id
+					if (!CONFIGS.canvasData["otherContent"][j].hasOwnProperty("@id")) {
+						
+						params = JSON.stringify(CONFIGS.canvasData["otherContent"][j]);
+						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+						$.ajax({
+							url: posturl,
+							type: "POST",
+							dataType: "json",
+							crossDomain: true,
+						})
+						.done(function (data) {
+							console.log(data);
+						})
+						.fail(function (xhr, status, errorThrown) {
+							console.log(status);
+							console.log(errorThrown);
+						});
+					}
 				}
-				
-				var params = JSON.stringify(CONFIGS.canvasData);
-				
-				// CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
-				var posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
-				
-				$.ajax({
-					url: posturl,
-					type: "POST",
-					dataType: "json",
-					crossDomain: true,
-				})
-				.done(function (data) {
-					console.log(data);
-				})
-				.fail(function (xhr, status, errorThrown) {
-					console.log(status);
-					console.log(errorThrown);
-				});
 				
 				$(document).trigger("handler_resetAnnoUpdateStatus");
 				
@@ -609,6 +646,8 @@
 				//TODO: setup fallback here instead
 				var dummyCan = $.extend(true, {}, dummyCanvas);
 				CONFIGS.canvasData = dummyCan;
+				var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
+				CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
 				CONFIGS.canvasId = CONFIGS.canvasData["@id"];
 				setCanvasDimensions();
 			}
@@ -624,8 +663,8 @@
 			}
 			
 			if (receivedDataCheck.annos) {
-				var annos = parser.getAnnotationListJSON();
-				CONFIGS.annotationList = jQuery.extend(true, {}, annos);
+				var annos = parser.getAllAnnotationListJSON();
+				CONFIGS.annotationLists = jQuery.extend(true, [], annos);
 				convertAnnotations();
 			} 
 			
@@ -741,40 +780,42 @@
 					// convertAnnotations();
 				// }, 5000);
 			// } else
-			if (CONFIGS.annotationList == null) {
+			if (CONFIGS.annotationLists.length < 1) {
 				alert("Warning: attempt to draw annotations failed. Reason: annotationList was null");
 			} else {
 				
+				for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
 				
-				
-				var annos = CONFIGS.annotationList.resources;
-				var ind;
-				console.log(annos);
-				
-				for (var i = 0; i < annos.length; i++) {
-					//TODO: check the dimensions of the SVG to match canvas
-					//TODO: change to convert to completedPaths only
-					if (annos[i].hasOwnProperty("resource") && annos[i]["resource"].hasOwnProperty("selector")) {						
-						console.log("SVG");
-						if (annos[i]["resource"]["selector"].hasOwnProperty("chars")) {
-							// var svgString = annos[i]["resource"]["selector"]["chars"];
-							// drawSVGAnnotation(svgString);
-							var curAnno = annos[i];
-							SVGToAnchor(curAnno, i);
-							
+					var annos = CONFIGS.annotationLists[i].resources;
+					var ind;
+					console.log(annos);
+					
+					for (var j = 0; j < annos.length; j++) {
+						//TODO: check the dimensions of the SVG to match canvas
+						//TODO: change to convert to completedPaths only
+						if (annos[j].hasOwnProperty("resource") && annos[j]["resource"].hasOwnProperty("selector")) {						
+							console.log("SVG");
+							if (annos[j]["resource"]["selector"].hasOwnProperty("chars")) {
+								// var svgString = annos[i]["resource"]["selector"]["chars"];
+								// drawSVGAnnotation(svgString);
+								var curAnno = annos[j];
+								SVGToAnchor(curAnno, i, j);
+								
+							}
+						} else if (annos[j].hasOwnProperty("on")) {
+							console.log("rect");
+							var curAnno = annos[j];
+							console.log(curAnno);
+							rectToAnchor(curAnno, i, j);
 						}
-					} else if (annos[i].hasOwnProperty("on")) {
-						console.log("rect");
-						var curAnno = annos[i];
-						console.log(curAnno);
-						rectToAnchor(curAnno, i);
 					}
 				}
 				redrawCompletedPaths();
 			}
+			
 		};
 		
-		var rectToAnchor = function (annotation, index) {
+		var rectToAnchor = function (annotation, annoListIndex, annoIndex) {
 			console.log(annotation);
 			var ind = annotation["on"].search("xywh");
 			if (ind > -1) {
@@ -801,7 +842,8 @@
 				anchorList.push(x, y);
 				
 				anchorList.type = "RECT";
-				anchorList.annoListIndex = index;
+				anchorList.annoListIndex = annoListIndex;
+				anchorList.annoIndex = annoIndex;
 				// TODO: determine the position in the anno list?
 				// anchorList.annoListIndex =
 				// drawRectalinearAnnotation(dims);
@@ -814,16 +856,22 @@
 			}
 		};
 		
-		var SVGToAnchor = function (annotation, index) {
+		var SVGToAnchor = function (annotation, annoListIndex, annoIndex) {
 			var chars = annotation["resource"]["selector"]["chars"];
 			var ind = chars.search("points");
 			if (ind > -1) {
 				var charSub = chars.substr(ind);
-				var indBegin = chars.search("\"");
+				console.log(charSub);
+				var indBegin = charSub.search("\"");
+				console.log(indBegin);
 				charSub = charSub.substr((indBegin + 1));
+				console.log(charSub);
 				var indEnd = charSub.search("\"");
+				console.log(indEnd);
 				var pointString = charSub.substring(0, indEnd);
+				console.log(pointString);
 				var points = pointString.split(/[\s,]+/);
+				console.log(points);
 				var ar;
 				//TODO: make sure the split worked
 				anchorList.clear();
@@ -836,8 +884,9 @@
 					anchorList.push(points[i], points[i+1]);
 					i++;
 				}
-				anchorList.annoListIndex = index;
 				anchorList.type = "POLY";
+				anchorList.annoListIndex = annoListIndex;
+				anchorList.annoIndex = annoIndex;
 				anchorList.JSON = JSON.stringify(annotation);
 				var curList = jQuery.extend(true, {}, anchorList);
 				completedPaths.push(curList);
@@ -931,6 +980,18 @@
 			undoList.push(cPath);
 			$(document).trigger("toolbar_updateAnnotationData");
 			console.log(undoList);
+		};
+		
+		var saveNewAnnotation = function () {
+			
+		};
+		
+		var saveNewAnnotationList = function () {
+			
+		};
+		
+		var updateAnnotation = function () {
+			
 		};
 		
 		

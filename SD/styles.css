@@ -20,6 +20,11 @@
 	width: 100%;
 }
 
+#transcriptionText {
+	width: 100%;
+	height: 150px;
+}
+
 .tpenCanvas {
 	float: left;
 	position: absolute;

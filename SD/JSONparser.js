@@ -12,8 +12,8 @@
 		var canvId;
 		//full JSON for sc:Canvas
 		var canvJSON;
-		//full JSON for sc:AnnotationList
-		var annoJSON;
+		//full JSON for all sc:AnnotationLists
+		var annoJSONList = [];
 		//URL to image to be drawn
 		var canvImg;
 		
@@ -36,10 +36,17 @@
 			}
 			//Check if the key is an AnnotationList
 			if (canvasObject["@type"] === "sc:AnnotationList") {
+				$(document).trigger("parser_annoDataRetrieved");
 				if (canvasObject.hasOwnProperty("on") && canvId == null) {
 					canvId = canvasObject["on"];
 				}
-				handleURL(canvasObject["@id"]);
+				//Check if this sc:AnnotationList has annotations in it (basically, has the id link been resolved?)
+				if (canvasObject.hasOwnProperty("resources") && canvasObject.resources[0]["@type"] === "oa:Annotation") {
+					var anno = $.extend(true, {}, canvasObject);
+					annoJSONList.push(anno);
+				} else {
+					handleURL(canvasObject["@id"]);
+				}
 			}
 				
 			//Check if the key is an image 
@@ -134,9 +141,10 @@
 			var type = parsedCanv["@type"];
 			//TODO: handle character case
 			if (type === "sc:AnnotationList") {
-				anoListURL = parsedCanv["@id"];
-				annoJSON = jQuery.extend(true, {}, parsedCanv);
-				$(document).trigger("parser_annoDataRetrieved", [annoJSON]);
+				// anoListURL = parsedCanv["@id"];
+				// var anno = jQuery.extend(true, {}, parsedCanv);
+				// annoJSONList.push(anno);
+				$(document).trigger("parser_annoDataRetrieved");
 				self.basicCheck(parsedCanv);
 			} else if (type === "sc:Canvas") {
 				//deep copy the object for use later
@@ -238,18 +246,19 @@
 			}, 1000);
 		};
 		
-		/*Getter for annoJSON
-		* @return annoJSON
+	
+		/*Getter for annoJSONList
+		* @return annoJSONList
 		*/
-		self.getAnnotationListJSON = function () {
-			if (annoJSON == null) {
+		self.getAllAnnotationListJSON = function () {
+			if (annoJSONList == null) {
 				return;
 			}
-			return annoJSON;
+			return annoJSONList;
 		};
 		
-		/*Getter for annoJSON
-		* @return annoJSON
+		/*Getter for canvJSON
+		* @return canvJSON
 		*/
 		self.getCanvasJSON = function () {
 			if (canvJSON == null) {
