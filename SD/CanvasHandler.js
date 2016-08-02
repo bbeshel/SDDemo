@@ -468,7 +468,7 @@
 			});
 			
 			$(document).on("handler_ajaxComplete", function () {
-				requestAjax();
+				// requestAjax();
 			});
 			
 			$(document).on("handler_exportAllDataJSON", function () {
@@ -979,17 +979,17 @@
 		
 		var requestAjax = function (jsonType) {
 			
-			setTimeout(function () {
+			while (ajaxRequestQueue.length > 0) {
 				if (!ajaxWaitState) {
 					execAjax(ajaxRequestQueue.shift(), jsonType);
-					requestAjax(jsonType);
+					// requestAjax(jsonType);
 				}
 				if (ajaxRequestQueue.length > 0) {
-					requestAjax(jsonType);
+					// requestAjax(jsonType);
 				} else {
-					$(document).trigger("handler_ajaxComplete");
 				}
-			}, 10);
+			}
+			$(document).trigger("handler_ajaxComplete");
 		};
 		
 		var execAjax = function (request, jsonType) {
