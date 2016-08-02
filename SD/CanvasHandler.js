@@ -115,7 +115,7 @@
 			canvasHeight : 0,
 			newAnnotationList : null,
 			canvasImageSrc : null,
-			annotationLists : null,
+			annotationLists : [],
 			canvasData : null,
 			canvasId : null
 		};
@@ -1054,7 +1054,11 @@
 					params = JSON.stringify(json);
 					
 					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
-					posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+					if (completedPaths[i].annoId == null) {
+						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+					} else {
+						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+					}
 					ajaxRequestQueue.push({ url : posturl });
 					
 					completedPaths[i].needsUpdate = false;
@@ -1082,7 +1086,7 @@
 		
 		var updateAnnotationList = function (curAnoListIndex) {
 			//check if it has the proper structure
-			if (!CONFIGS.annotationLists[curAnoListIndex].hasOwnProperty("resources") {
+			if (!CONFIGS.annotationLists[curAnoListIndex].hasOwnProperty("resources")) {
 				alert("couldnt find the resources field in annotation list");
 				console.log(CONFIGS.annotationLists[curAnoListIndex]);
 				return;
@@ -1140,7 +1144,7 @@
 					if (!annoIsInList) {
 						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
 						anoPointer["@id"] = completedPaths[i].annoId;
-						CONFIGS.annotationLists[i]["resources"].push(anoPointer);
+						CONFIGS.newAnnotationList["resources"].push(anoPointer);
 					}
 				}
 			}
