@@ -253,6 +253,7 @@
 			type: null,
 			JSON: null,
 			needsUpdate: false,
+			needsLocalUpdate: false,
 			push: function (px, py) {
 				this.x.push(px);
 				this.y.push(py);
@@ -481,7 +482,9 @@
 				//TODO: save new annotations, new annotation lists
 					
 				updateAllAnnotations();
-					
+				updateLocalAnnotationJSON();
+				
+				
 					
 				
 				updateAllAnnotationLists();
@@ -1019,6 +1022,7 @@
 					ajaxRequestQueue.push(posturl);
 					
 					completedPaths[i].needsUpdate = false;
+					completedPaths[i].needsLocalUpdate = true;
 					// $.ajax({
 						// url: posturl,
 						// type: "POST",
@@ -1037,7 +1041,7 @@
 			}
 					
 			requestAjax();
-			updateLocalAnnotationJSON();
+			
 		};
 		
 		var updateAnnotationList = function (curAnoListIndex) {
@@ -1093,7 +1097,12 @@
 		};
 		
 		var updateLocalAnnotationJSON = function () {
-			
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].needsLocalUpdate) {
+					ajaxRequestQueue.push(completedPaths[i].annoId);
+				}
+			}
+			requestAjax();
 		};
 		
 		
