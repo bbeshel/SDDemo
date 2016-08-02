@@ -425,6 +425,9 @@
 			$wrapper.append($canvasContainer);
 			tool.init($wrapper);
 			
+			var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
+			CONFIGS.newAnnotationList = dummyAnnoList;
+			
 			$(document).on("handler_execUndo", function () {
 				execUndo();
 			});
@@ -480,20 +483,29 @@
 				//TODO: update all the local json with the updated version from the server
 					
 				//TODO: save new annotations, new annotation lists
-					
+				generateAllJSON();
+				
+				console.log("updating annotations");
 				updateAllAnnotations();
+				console.log("updating annotations locally");
 				updateLocalAnnotationJSON();
 				
 				
 					
 				
+				console.log("updating annotationLists");
 				updateAllAnnotationLists();
+				console.log("updating annotationLists locally");
+				updateLocalAnnotationListsJSON();
 				
 				
-				
-				
+				updateNewAnnotationList();
 				
 				$(document).trigger("handler_resetAnnoUpdateStatus");
+				
+				console.log(completedPaths);
+				console.log(CONFIGS.annotationLists);
+				console.log(CONFIGS.newAnnotationList);
 				
 			});
 			
@@ -965,31 +977,55 @@
 			console.log(undoList);
 		};
 		
-		var requestAjax = function () {
+		var requestAjax = function (jsonType) {
 			
 			setTimeout(function () {
 				if (!ajaxWaitState) {
-					execAjax(ajaxRequestQueue.shift());
-					requestAjax();
+					execAjax(ajaxRequestQueue.shift(), jsonType);
+					requestAjax(jsonType);
 				}
 				if (ajaxRequestQueue.length > 0) {
-					requestAjax();
+					requestAjax(jsonType);
 				} else {
 					$(document).trigger("handler_ajaxComplete");
 				}
 			}, 10);
 		};
 		
-		var execAjax = function (posturl) {
+		var execAjax = function (request, jsonType) {
+				
 				ajaxWaitState = true;
 				$.ajax({
-					url: posturl,
+					url: request.url,
 					type: "POST",
 					dataType: "json",
 					crossDomain: true,
 				})
 				.done(function (data) {
 					console.log(data);
+					if (jsonType != null) {
+						switch (jsonType) {
+							case "anno":
+								if (request.index != null) {
+									completedPaths[request.index].JSON = data;
+									var parsedJSON = JSON.parse(data);
+									completedPaths[request.index].annoId = parsedJSON["@id"];
+									completedPaths[request.index].needsLocalUpdate = false;
+								}
+							break;
+							case "annoList":
+								if (request.index != null) {
+									CONFIGS.annotationLists[request.index] = JSON.parse(data);
+								}
+							break;
+							case "newAnnoList":
+								CONFIGS.newAnnotationList = JSON.parse(data);
+							break;
+							case "canvas":
+							break;
+							default:
+						}
+					}
 					ajaxWaitState = false;
 				})
 				.fail(function (xhr, status, errorThrown) {
@@ -1019,7 +1055,7 @@
 					
 					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
 					posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
-					ajaxRequestQueue.push(posturl);
+					ajaxRequestQueue.push({ url : posturl });
 					
 					completedPaths[i].needsUpdate = false;
 					completedPaths[i].needsLocalUpdate = true;
@@ -1057,8 +1093,8 @@
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].annoListIndex === curAnoListIndex) {
 					var annoIsInList = false;
-					for (var j = 0; j < CONFIGS.annotationLists[i]["resources"].length; j++) {
-						if (CONFIGS.annotationLists[i]["resources"][j]["@id"] === completedPaths[i].annoId) {
+					for (var j = 0; j < CONFIGS.annotationLists[curAnoListIndex]["resources"].length; j++) {
+						if (CONFIGS.annotationLists[curAnoListIndex]["resources"][j]["@id"] === completedPaths[i].annoId) {
 							annoIsInList = true;
 						}
 					}
@@ -1072,6 +1108,8 @@
 			console.log(CONFIGS.annotationLists[curAnoListIndex]);
 			
 			
+			
+			
 			//last, check if this annolist has an id
 			// if (!CONFIGS.annotationLists[j].hasOwnProperty("@id")) {
 				
@@ -1083,26 +1121,71 @@
 			
 			params = JSON.stringify(CONFIGS.annotationLists[curAnoListIndex]);
 			posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
-			execAjax(posturl);
+			execAjax({ url : posturl });
 			
 			
 			//TODO: update with posturl
+		};
+		
+		var updateNewAnnotationList = function () {
+			var params, posturl;
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].annoListIndex === -1) {
+					var annoIsInList = false;
+					for (var j = 0; j < CONFIGS.newAnnotationList["resources"].length; j++) {
+						if (CONFIGS.newAnnotationList["resources"][j]["@id"] === completedPaths[i].annoId) {
+							annoIsInList = true;
+						}
+					}
+					if (!annoIsInList) {
+						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
+						anoPointer["@id"] = completedPaths[i].annoId;
+						CONFIGS.annotationLists[i]["resources"].push(anoPointer);
+					}
+				}
+			}
+			console.log(CONFIGS.newAnnotationList);
+			
+			//TODO: may need to consolidate this if both cases work
+			if (CONFIGS.newAnnotationList.hasOwnProperty("@id")) {
+				params = JSON.stringify(CONFIGS.newAnnotationList);
+				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+				execAjax({ url : posturl }, "newAnnoList");
+			} else {
+				params = JSON.stringify(CONFIGS.newAnnotationList);
+				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+				execAjax({ url : posturl } , "newAnnoList");
+			}
 		};
 		
 		var updateAllAnnotationLists = function () {
 			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
 				updateAnnotationList(i);
 			}
+			
 			// requestAjax();
 		};
 		
 		var updateLocalAnnotationJSON = function () {
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].needsLocalUpdate) {
-					ajaxRequestQueue.push(completedPaths[i].annoId);
+					// var params = completedPaths[i].JSON;
+					var params = completedPaths[i].annoId;
+					var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
 			}
-			requestAjax();
+			requestAjax("anno");
+		};
+		
+		var updateLocalAnnotationListsJSON = function () {
+			//TODO: add the new anno list too
+			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
+				var params = CONFIGS.annotationLists[i]["@id"];
+				var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+				ajaxRequestQueue.push({ url : posturl, index : i });
+			}
+			requestAjax("annoList");
 		};
 		
 		
