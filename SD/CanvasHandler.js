@@ -114,10 +114,45 @@
 			canvasWidth : 0,
 			canvasHeight : 0,
 			newAnnotationList : null,
+			importedAnnotations : [],
 			canvasImageSrc : null,
 			annotationLists : [],
 			canvasData : null,
 			canvasId : null
+		};
+		
+		var updateProcedure = {
+			procedures : [
+				function () {
+					updateAllAnnotations();
+				},
+				function () {
+					updateLocalAnnotationJSON();
+				},
+				function () {
+					updateAllAnnotationLists();
+				},
+				function () {
+					updateLocalAnnotationListsJSON();
+				},
+				function () {
+					updateNewAnnotationList();
+				},
+				function () {
+					updateLocalNewAnnotationListJSON();
+				}
+			],
+			run : function () {
+				this.curIndex++;
+				if (this.curIndex === this.procedures.length) {
+					$(document).trigger("handler_resetAnnoUpdateStatus");
+					$(document).trigger("toolbar_updateAnnotationData");
+					this.curIndex = -1;
+				} else {
+					this.procedures[this.curIndex]();
+				}
+			},
+			curIndex : -1
 		};
 		
 		var annoListData;
@@ -275,8 +310,12 @@
 				this.topmost = 100000;
 				this.bottommost = 0;
 				this.annoListIndex = -1;
+				this.annoIndex = -1;
+				this.annoId = null;
 				this.type = null;
 				this.JSON = null;
+				this.needsUpdate = false;
+				this.needsLocalUpdate = false;
 			},
 			updateBounds: function (px, py) {
 				this.leftmost = px < this.leftmost ? px : this.leftmost;
@@ -485,27 +524,29 @@
 				//TODO: save new annotations, new annotation lists
 				generateAllJSON();
 				
-				console.log("updating annotations");
-				updateAllAnnotations();
-				console.log("updating annotations locally");
-				updateLocalAnnotationJSON();
+				updateProcedure.run();
+				
+				// console.log("updating annotations");
+				// updateAllAnnotations();
+				// console.log("updating annotations locally");
+				// updateLocalAnnotationJSON();
 				
 				
 					
 				
-				console.log("updating annotationLists");
-				updateAllAnnotationLists();
-				console.log("updating annotationLists locally");
-				updateLocalAnnotationListsJSON();
+				// console.log("updating annotationLists");
+				// updateAllAnnotationLists();
+				// console.log("updating annotationLists locally");
+				// updateLocalAnnotationListsJSON();
 				
 				
-				updateNewAnnotationList();
+				// updateNewAnnotationList();
 				
-				$(document).trigger("handler_resetAnnoUpdateStatus");
+				// $(document).trigger("handler_resetAnnoUpdateStatus");
 				
-				console.log(completedPaths);
-				console.log(CONFIGS.annotationLists);
-				console.log(CONFIGS.newAnnotationList);
+				// console.log(completedPaths);
+				// console.log(CONFIGS.annotationLists);
+				// console.log(CONFIGS.newAnnotationList);
 				
 			});
 			
@@ -655,8 +696,11 @@
 			}
 			
 			if (receivedDataCheck.annos) {
-				var annos = parser.getAllAnnotationListJSON();
-				CONFIGS.annotationLists = jQuery.extend(true, [], annos);
+				var annoLists = parser.getAllAnnotationListJSON();
+				CONFIGS.annotationLists = $.extend(true, [], annoLists);
+				var annos = parser.getAllAnnotationJSON();
+				CONFIGS.importedAnnotations = $.extend(true, [], annos);
+				
 				convertAnnotations();
 			} 
 			
@@ -667,6 +711,8 @@
 				console.log("WE DUMMY NOW");
 				tool.setDummyState();
 			}
+			//TODO: remove until completed testing
+				tool.setDummyState();
 			
 			redrawCompletedPaths();
 			
@@ -772,35 +818,35 @@
 					// convertAnnotations();
 				// }, 5000);
 			// } else
-			if (CONFIGS.annotationLists.length < 1) {
+			if (CONFIGS.importedAnnotations.length < 1) {
 				alert("Warning: attempt to draw annotations failed. Reason: annotationList was null");
 			} else {
 				
-				for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
+				for (var i = 0; i < CONFIGS.importedAnnotations.length; i++) {
 				
-					var annos = CONFIGS.annotationLists[i].resources;
+					var annos = CONFIGS.importedAnnotations[i];
 					var ind;
 					console.log(annos);
 					
-					for (var j = 0; j < annos.length; j++) {
-						//TODO: check the dimensions of the SVG to match canvas
-						//TODO: change to convert to completedPaths only
-						if (annos[j].hasOwnProperty("resource") && annos[j]["resource"].hasOwnProperty("selector")) {						
-							console.log("SVG");
-							if (annos[j]["resource"]["selector"].hasOwnProperty("chars")) {
-								// var svgString = annos[i]["resource"]["selector"]["chars"];
-								// drawSVGAnnotation(svgString);
-								var curAnno = annos[j];
-								SVGToAnchor(curAnno, i, j);
-								
-							}
-						} else if (annos[j].hasOwnProperty("on")) {
-							console.log("rect");
-							var curAnno = annos[j];
-							console.log(curAnno);
-							rectToAnchor(curAnno, i, j);
+					
+					//TODO: check the dimensions of the SVG to match canvas
+					//TODO: change to convert to completedPaths only
+					if (annos.hasOwnProperty("resource") && annos["resource"].hasOwnProperty("selector")) {						
+						console.log("SVG");
+						if (annos["resource"]["selector"].hasOwnProperty("chars")) {
+							// var svgString = annos[i]["resource"]["selector"]["chars"];
+							// drawSVGAnnotation(svgString);
+							// var curAnno = annos[j];
+							SVGToAnchor(annos, i);
+							
 						}
+					} else if (annos.hasOwnProperty("on")) {
+						console.log("rect");
+						// var curAnno = annos[j];
+						// console.log(curAnno);
+						rectToAnchor(annos, i);
 					}
+				
 				}
 				redrawCompletedPaths();
 			}
@@ -871,10 +917,13 @@
 				for (var i = 0; i < points.length; i++) {
 					points[i] = Number(points[i]);
 					points[i+1] = Number(points[i+1]);
-					ar = convertToAdjustedDimensions([points[i], points[i+1]]);
-					points[i] = ar[0];
-					points[i+1] = ar[1];
-					anchorList.push(points[i], points[i+1]);
+					//TODO: probably make sure we arent skipping real points
+					if (!isNaN(points[i]) && !isNaN(points[i+1])) {
+						ar = convertToAdjustedDimensions([points[i], points[i+1]]);
+						points[i] = ar[0];
+						points[i+1] = ar[1];
+						anchorList.push(points[i], points[i+1]);
+					}
 					i++;
 				}
 				anchorList.type = "POLY";
@@ -977,20 +1026,20 @@
 			console.log(undoList);
 		};
 		
-		var requestAjax = function (jsonType) {
+		// var requestAjax = function (jsonType) {
 			
-			while (ajaxRequestQueue.length > 0) {
-				if (!ajaxWaitState) {
-					execAjax(ajaxRequestQueue.shift(), jsonType);
-					// requestAjax(jsonType);
-				}
-				if (ajaxRequestQueue.length > 0) {
-					// requestAjax(jsonType);
-				} else {
-				}
-			}
-			$(document).trigger("handler_ajaxComplete");
-		};
+			// while (ajaxRequestQueue.length > 0) {
+				// if (!ajaxWaitState) {
+					// execAjax(ajaxRequestQueue.shift(), jsonType);
+					// // requestAjax(jsonType);
+				// }
+				// if (ajaxRequestQueue.length > 0) {
+					// // requestAjax(jsonType);
+				// } else {
+				// }
+			// }
+			// $(document).trigger("handler_ajaxComplete");
+		// };
 		
 		var execAjax = function (request, jsonType) {
 				
@@ -1005,21 +1054,32 @@
 					console.log(data);
 					if (jsonType != null) {
 						switch (jsonType) {
-							case "anno":
+							case "anno": 
+								completedPaths[request.index].annoId = data["@id"];
+							break;
+							case "annoLocal":
 								if (request.index != null) {
-									completedPaths[request.index].JSON = data;
-									var parsedJSON = JSON.parse(data);
-									completedPaths[request.index].annoId = parsedJSON["@id"];
+									completedPaths[request.index].JSON = JSON.stringify(data);
+									// var parsedJSON = JSON.parse(data);
 									completedPaths[request.index].needsLocalUpdate = false;
 								}
 							break;
 							case "annoList":
+								if (data.hasOwnProperty("@id") {
+									CONFIGS.annotationLists[request.index]["@id"] = data["@id"];
+								}
+							case "annoListLocal":
 								if (request.index != null) {
-									CONFIGS.annotationLists[request.index] = JSON.parse(data);
+									CONFIGS.annotationLists[request.index] = data;
 								}
 							break;
 							case "newAnnoList":
-								CONFIGS.newAnnotationList = JSON.parse(data);
+								if (data.hasOwnProperty("@id") {
+									CONFIGS.newAnnotationList["@id"] = data["@id"];
+								}
+							break;
+							case "newAnnoListLocal":
+								CONFIGS.newAnnotationList = data;
 							break;
 							case "canvas":
 							break;
@@ -1027,6 +1087,11 @@
 						}
 					}
 					ajaxWaitState = false;
+					if (ajaxRequestQueue.length > 0) {
+						execAjax(ajaxRequestQueue.shift(), jsonType);
+					} else {
+						updateProcedure.run();
+					}
 				})
 				.fail(function (xhr, status, errorThrown) {
 					console.log(status);
@@ -1043,6 +1108,8 @@
 			
 		};
 		
+		
+		
 		var updateAllAnnotations = function () {
 			var posturl, params;
 			for (var i = 0; i < completedPaths.length; i++) {
@@ -1051,15 +1118,18 @@
 					//TODO: check if valid JSON first
 					var json = JSON.parse(completedPaths[i].JSON);
 				
-					params = JSON.stringify(json);
 					
 					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
 					if (completedPaths[i].annoId == null) {
+						params = JSON.stringify(json);
 						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
 					} else {
+						params = JSON.stringify({ "@id" : completedPaths[i].annoId });
 						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
 					}
-					ajaxRequestQueue.push({ url : posturl });
+					ajaxRequestQueue.push({ url : posturl, index : i });
+					
+					console.log(posturl);
 					
 					completedPaths[i].needsUpdate = false;
 					completedPaths[i].needsLocalUpdate = true;
@@ -1080,11 +1150,12 @@
 				}
 			}
 					
-			requestAjax();
+			execAjax(ajaxRequestQueue.shift(), "anno");
 			
 		};
 		
 		var updateAnnotationList = function (curAnoListIndex) {
+			var curAnnoNeedsUpdate = false;
 			//check if it has the proper structure
 			if (!CONFIGS.annotationLists[curAnoListIndex].hasOwnProperty("resources")) {
 				alert("couldnt find the resources field in annotation list");
@@ -1102,10 +1173,12 @@
 							annoIsInList = true;
 						}
 					}
+					//TODO: use this if anno was added to the current anno list
 					if (!annoIsInList) {
-						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
-						anoPointer["@id"] = completedPaths[i].annoId;
-						CONFIGS.annotationLists[i]["resources"].push(anoPointer);
+						// curAnnoNeedsUpdate();
+						// var anoPointer = $.extend(true, {}, dummyAnnoPointer);
+						// anoPointer["@id"] = completedPaths[i].annoId;
+						// CONFIGS.annotationLists[i]["resources"].push(anoPointer);
 					}
 				}
 			}
@@ -1122,13 +1195,71 @@
 				// ajaxRequestQueue.push(posturl);
 			// }
 			
-			
-			params = JSON.stringify(CONFIGS.annotationLists[curAnoListIndex]);
-			posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
-			execAjax({ url : posturl });
+			// if (curAnnoNeedsUpdate) {
+				var anoId = CONFIGS.annotationLists[curAnoListIndex]["@id"];
+				var temp = JSON.stringify({ "@id" : anoId });
+				params = JSON.stringify(CONFIGS.annotationLists[curAnoListIndex]);
+				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + temp;
+				ajaxRequestQueue.push({ url : posturl, index : curAnoListIndex});
+				console.log(posturl);
+				// execAjax({ url : posturl }, "annoList");
+			// } else {
+				// updateProcedure.run();
+			// }
 			
 			
 			//TODO: update with posturl
+		};
+		
+		
+		var updateAllAnnotationLists = function () {
+			if (CONFIGS.annotationLists.length === 0) {
+				updateProcedure.run();
+				return;
+			}
+			
+			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
+				updateAnnotationList(i);
+			}
+			
+			if (ajaxRequestQueue.length > 0) {
+				execAjax(ajaxRequestQueue.shift(), "annoList");
+			} else {
+				updateProcedure.run();
+			}
+			
+			
+			// requestAjax();
+		};
+		
+		var updateLocalAnnotationJSON = function () {
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].needsLocalUpdate) {
+					// var params = completedPaths[i].JSON;
+					// var annoPointer = { "@id" : null };
+					// annoPointer["@id"] = completedPaths[i].annoId;
+					// var params = JSON.stringify(annoPointer);
+					// var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+					posturl = completedPaths[i].annoId;
+					ajaxRequestQueue.push({ url : posturl, index : i });
+				}
+			}
+			execAjax(ajaxRequestQueue.shift(), "annoLocal");
+		};
+		
+		var updateLocalAnnotationListsJSON = function () {
+			if (CONFIGS.annotationLists.length === 0) {
+				updateProcedure.run();
+				return;
+			}
+			
+			//TODO: add the new anno list too
+			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
+				var params = CONFIGS.annotationLists[i]["@id"];
+				var posturl = params;
+				ajaxRequestQueue.push({ url : posturl, index : i });
+			}
+			execAjax(ajaxRequestQueue.shift(),"annoListLocal");
 		};
 		
 		var updateNewAnnotationList = function () {
@@ -1152,7 +1283,7 @@
 			
 			//TODO: may need to consolidate this if both cases work
 			if (CONFIGS.newAnnotationList.hasOwnProperty("@id")) {
-				params = JSON.stringify(CONFIGS.newAnnotationList);
+				params = JSON.stringify({ "@id" : CONFIGS.newAnnotationList["@id"] });
 				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
 				execAjax({ url : posturl }, "newAnnoList");
 			} else {
@@ -1162,36 +1293,10 @@
 			}
 		};
 		
-		var updateAllAnnotationLists = function () {
-			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
-				updateAnnotationList(i);
-			}
-			
-			// requestAjax();
+		var updateLocalNewAnnotationListJSON = function () {
+			var posturl = CONFIGS.newAnnotationList["@id"];
+			execAjax({ url : posturl }, "newAnnoListLocal");
 		};
-		
-		var updateLocalAnnotationJSON = function () {
-			for (var i = 0; i < completedPaths.length; i++) {
-				if (completedPaths[i].needsLocalUpdate) {
-					// var params = completedPaths[i].JSON;
-					var params = completedPaths[i].annoId;
-					var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
-					ajaxRequestQueue.push({ url : posturl, index : i });
-				}
-			}
-			requestAjax("anno");
-		};
-		
-		var updateLocalAnnotationListsJSON = function () {
-			//TODO: add the new anno list too
-			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
-				var params = CONFIGS.annotationLists[i]["@id"];
-				var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
-				ajaxRequestQueue.push({ url : posturl, index : i });
-			}
-			requestAjax("annoList");
-		};
-		
 		
 		//TODO: maybe make this support redo
 		var execUndo = function () {

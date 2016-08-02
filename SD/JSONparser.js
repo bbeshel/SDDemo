@@ -13,6 +13,7 @@
 		//full JSON for sc:Canvas
 		var canvJSON;
 		//full JSON for all sc:AnnotationLists
+		var annoListJSONList = [];
 		var annoJSONList = [];
 		//URL to image to be drawn
 		var canvImg;
@@ -31,7 +32,7 @@
 			
 			//Check if the key is a SharedCanvas
 			if (canvasObject["@type"] === "sc:Canvas") {
-				handleURL(canvasObject["@id"]);
+				// handleURL(canvasObject["@id"]);
 				canvId = canvasObject["@id"];
 			}
 			//Check if the key is an AnnotationList
@@ -43,8 +44,16 @@
 				//Check if this sc:AnnotationList has annotations in it (basically, has the id link been resolved?)
 				if (canvasObject.hasOwnProperty("resources") && canvasObject.resources[0]["@type"] === "oa:Annotation") {
 					var anno = $.extend(true, {}, canvasObject);
-					annoJSONList.push(anno);
+					annoListJSONList.push(anno);
 				} else {
+					handleURL(canvasObject["@id"]);
+				}
+			}
+			//is an anno that is not an image
+			if (canvasObject["@type"] === "oa:Annotation" && canvasObject.hasOwnProperty("resource") && canvasObject["resource"]["@type"] !== "dctypes:Image") {
+				annoJSONList.push(canvasObject);
+			} else if (canvasObject["@type"] === "oa:Annotation") {
+				if (canvasObject.hasOwnProperty("@id")) {
 					handleURL(canvasObject["@id"]);
 				}
 			}
@@ -143,7 +152,7 @@
 			if (type === "sc:AnnotationList") {
 				// anoListURL = parsedCanv["@id"];
 				// var anno = jQuery.extend(true, {}, parsedCanv);
-				// annoJSONList.push(anno);
+				// annoListJSONList.push(anno);
 				$(document).trigger("parser_annoDataRetrieved");
 				self.basicCheck(parsedCanv);
 			} else if (type === "sc:Canvas") {
@@ -151,8 +160,10 @@
 				canvJSON = jQuery.extend(true, {}, parsedCanv);
 				$(document).trigger("parser_canvasDataRetrieved", [canvJSON]);
 				self.basicCheck(parsedCanv);
+			} else if (type === "oa:Annotation") {
+				self.basicCheck(parsedCanv);
 			} else {
-				alert('Handled json does not have expected type "sc:Canvas" or "sc:AnnotationList');
+				alert('Handled json does not have expected type "sc:Canvas", "sc:AnnotationList", or "oa:Annotation"');
 			}
 		};
 		
@@ -247,10 +258,20 @@
 		};
 		
 	
+		/*Getter for annoListJSONList
+		* @return annoListJSONList
+		*/
+		self.getAllAnnotationListJSON = function () {
+			if (annoListJSONList == null) {
+				return;
+			}
+			return annoListJSONList;
+		};
+		
 		/*Getter for annoJSONList
 		* @return annoJSONList
 		*/
-		self.getAllAnnotationListJSON = function () {
+		self.getAllAnnotationJSON = function () {
 			if (annoJSONList == null) {
 				return;
 			}
