@@ -1065,16 +1065,17 @@
 								}
 							break;
 							case "annoList":
-								if (data.hasOwnProperty("@id") {
+								if (data.hasOwnProperty("@id")) {
 									CONFIGS.annotationLists[request.index]["@id"] = data["@id"];
 								}
+							break;
 							case "annoListLocal":
 								if (request.index != null) {
 									CONFIGS.annotationLists[request.index] = data;
 								}
 							break;
 							case "newAnnoList":
-								if (data.hasOwnProperty("@id") {
+								if (data.hasOwnProperty("@id")) {
 									CONFIGS.newAnnotationList["@id"] = data["@id"];
 								}
 							break;
