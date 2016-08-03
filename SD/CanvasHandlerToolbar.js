@@ -51,7 +51,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
 	
-	var $exportData = $("<button id='exportData' class='toolbarItem'>Export as JSON</button>");
+	var $exportData = $("<button id='exportData' class='permanent toolbarItem'>Export as JSON</button>");
 	
 	var $debugViewCheckbox = $('<input id="debugViewCheckbox" class="toolbarItem permanent" type="checkbox" name="Debug View" />');
 	

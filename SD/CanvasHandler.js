@@ -1042,7 +1042,7 @@
 		// };
 		
 		var execAjax = function (request, jsonType) {
-				
+				console.log(request.url);
 				ajaxWaitState = true;
 				$.ajax({
 					url: request.url,
@@ -1119,15 +1119,17 @@
 				if (completedPaths[i].needsUpdate) {
 					console.log(completedPaths[i].JSON);
 					//TODO: check if valid JSON first
-					var json = JSON.parse(completedPaths[i].JSON);
+					// var json = JSON.parse(completedPaths[i].JSON);
 				
 					
+						params = stripExcessJSONData(completedPaths[i].JSON);
 					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
 					if (completedPaths[i].annoId == null) {
-						params = JSON.stringify(json);
+						// params = JSON.stringify(json);
+						// params = completedPaths[i].JSON;
 						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
 					} else {
-						params = JSON.stringify({ "@id" : completedPaths[i].annoId });
+						// params = completedPaths[i].JSON;
 						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
 					}
 					ajaxRequestQueue.push({ url : posturl, index : i });
@@ -1294,7 +1296,8 @@
 			
 			//TODO: may need to consolidate this if both cases work
 			if (CONFIGS.newAnnotationList.hasOwnProperty("@id")) {
-				params = JSON.stringify({ "@id" : CONFIGS.newAnnotationList["@id"] });
+				// params = JSON.stringify({ "@id" : CONFIGS.newAnnotationList["@id"] });
+				params = JSON.stringify(CONFIGS.newAnnotationList);
 				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
 				execAjax({ url : posturl }, "newAnnoList");
 			} else {
@@ -1525,6 +1528,19 @@
 			// }
 			drawPath(anchorList);
 			anchorList.clear();
+		};
+		
+		var stripExcessJSONData = function (json) {
+			json = JSON.parse(json);
+			delete json.addedTime;
+			delete json.originalAnnoID;
+			delete json.version;
+			delete json.permission;
+			delete json.forkFromID;
+			delete json.serverName;
+			delete json.serverIP;
+			delete json["_id"];
+			return JSON.stringify(json);
 		};
 		
 		//put more shared params here if needed
