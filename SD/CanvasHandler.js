@@ -1055,7 +1055,9 @@
 					if (jsonType != null) {
 						switch (jsonType) {
 							case "anno": 
-								completedPaths[request.index].annoId = data["@id"];
+								if(data.hasOwnProperty("@id")) {
+									completedPaths[request.index].annoId = data["@id"];
+								}
 							break;
 							case "annoLocal":
 								if (request.index != null) {
@@ -1150,8 +1152,12 @@
 					// CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
 				}
 			}
-					
-			execAjax(ajaxRequestQueue.shift(), "anno");
+			
+			if (ajaxRequestQueue.length > 0) {
+				execAjax(ajaxRequestQueue.shift(), "anno");
+			} else {
+				updateProcedure.run();
+			}
 			
 		};
 		
@@ -1245,7 +1251,11 @@
 					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
 			}
-			execAjax(ajaxRequestQueue.shift(), "annoLocal");
+			if (ajaxRequestQueue.length > 0) {
+				execAjax(ajaxRequestQueue.shift(), "annoLocal");
+			} else {
+				updateProcedure.run();
+			}
 		};
 		
 		var updateLocalAnnotationListsJSON = function () {
@@ -1749,7 +1759,7 @@
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
 			
-			selectedPath.needsUpdate = true;
+			selectedPaths[selectedPathsCurIndex].path.needsUpdate = true;
 			
 			redrawCompletedPaths();
 			
@@ -1760,7 +1770,7 @@
 			
 			updateCompletedPaths();
 			updateJSON();
-			$(document).trigger("handler_resetAnnoUpdateStatus");
+			// $(document).trigger("handler_resetAnnoUpdateStatus");
 			$(document).trigger("toolbar_updateAnnotationData");
 			pushUndo();
 			
