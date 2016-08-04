@@ -57,6 +57,18 @@
 					handleURL(canvasObject["@id"]);
 				}
 			}
+			
+			if (canvasObject.hasOwnProperty("otherContent")) {
+				if (Array.isArray(canvasObject["otherContent"])) {
+					if (canvasObject["otherContent"].length > 0) {
+						if (typeof canvasObject["otherContent"][0] === "string") {
+							for (var n in canvasObject["otherContent"]) {
+								handleURL(canvasObject["otherContent"][n]);
+							}
+						}
+					}
+				}
+			}
 				
 			//Check if the key is an image 
 			if (canvasObject["@type"] === "dctypes:Image") {				
@@ -71,7 +83,8 @@
 			for (n in canvasObject){
 				//Recurse if it is an object or an array
 				if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
-						self.basicCheck(canvasObject[n], retTextBool);				
+					console.log(canvasObject);
+					self.basicCheck(canvasObject[n], retTextBool);				
 				} 
 				//Else, handle particular cases if valid value
 				else if (validChecker(canvasObject[n]) === true){

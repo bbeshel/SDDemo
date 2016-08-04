@@ -35,16 +35,18 @@
 		var dummyAnnoPointer = {
 			"@id" : null,
 			"@type" : "oa:Annotation",
+			"@context": "http://iiif.io/api/presentation/2/context.json",
 			"sandbox" : "bbeshel"
 		};
 		
 		var dummyAnnotation = {
 			"@type" : "oa:Annotation",
-			"motivation" : "sc:Painting",
+			"motivation" : "sc:painting",
+			"@context": "http://iiif.io/api/presentation/2/context.json",
 		    "sandbox" : "bbeshel",
 			"resource" : {
 				"@type" : "cnt:ContentAsText",
-				"cnt:chars" : ""
+				"chars" : "<none>"
 			},
 			"on" : null
 		};
@@ -52,6 +54,7 @@
 		var dummyPolyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:painting",
+			"@context": "http://iiif.io/api/presentation/2/context.json",
 			"sandbox" : "bbeshel",	
 			"resource" : {
 				"@type" : "oa:SpecificResource",
@@ -66,6 +69,7 @@
 		var dummyAnnotationList = {
 			"@id" : null,
 			"@type" : "sc:AnnotationList",
+			"@context": "http://iiif.io/api/presentation/2/context.json",
 			"sandbox" : "bbeshel",
 			"resources" : []
 		};
@@ -74,6 +78,7 @@
       //This will be the anchor canvas in the anchor range
           "@id" : "http://www.example.org/dummy/canvas/",
           "@type" : "sc:Canvas",
+		  "@context": "http://iiif.io/api/presentation/2/context.json",
           "label" : "dummy canvas",
 		  "sandbox" : "bbeshel",
           "height" : 1000,
@@ -397,6 +402,7 @@
 							this.bottommost
 						]);
 						
+						//TODO: figure out a better way to escape # char in ajax
 						on += "#xywh=" 
 						+ xywh[0] + "," 
 						+ xywh[2] + "," 
@@ -1599,6 +1605,7 @@
 			delete json["_id"];
 			return JSON.stringify(json);
 		};
+		
 		
 		//put more shared params here if needed
 		//TODO: find a more elegant way of doing this...
