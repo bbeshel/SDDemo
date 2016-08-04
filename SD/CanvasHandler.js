@@ -302,6 +302,8 @@
 			JSON: null,
 			needsUpdate: false,
 			needsLocalUpdate: false,
+			strokeStyle: "black",
+			lineWidth: 1,
 			push: function (px, py) {
 				this.x.push(px);
 				this.y.push(py);
@@ -1722,6 +1724,8 @@
 				// completedPaths[curInd] = clone(selectedPaths[i].path);
 				var p = $.extend(true, {}, selectedPaths[i].path);
 				completedPaths[curInd] = p;
+				CONFIGS.anno.lineWidth = selectedPaths[i].lineWidth;
+				CONFIGS.anno.strokeStyle = selectedPaths[i].strokeStyle;
 			}
 		};
 		
@@ -1874,7 +1878,15 @@
 					}
 				}
 				if (!skipPath) {
+					var currentLineWidth = CONFIGS.anno.lineWidth;
+					var currentStrokeStyle = CONFIGS.anno.strokeStyle;
+					console.log(CONFIGS.anno.strokeStyle);
+					//CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
+					//CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
+					console.log(CONFIGS.anno.strokeStyle);
 					drawPath(completedPaths[i]);
+					//CONFIGS.anno.lineWidth = currentLineWidth;
+					//CONFIGS.anno.strokeStyle = currentStrokeStyle;
 				}
 				skipPath = false;
 			}
