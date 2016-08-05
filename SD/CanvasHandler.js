@@ -146,6 +146,9 @@
 				},
 				function () {
 					updateLocalNewAnnotationListJSON();
+				},
+				function () {
+					updateCanvas();
 				}
 			],
 			run : function () {
@@ -202,6 +205,8 @@
 		
 		//Bool for checking if the mouse is near an anchor. Based on CONFIGS.snapZone
 		var isInSnapZone = false;
+		
+		var mouseTimeout;
 		
 		//Bool for mouse down
 		var isMouseDown = false;
@@ -665,12 +670,15 @@
 			
 			//Generic document mousedown catch and handler
 			$(document).on("mousedown", function (e) {
-				setTimeout(function () {isMouseDown = true;}, 10);
+				clearTimeout(mouseTimeout);
+				mouseTimeout = null;
+				mouseTimeout = setTimeout(function () {isMouseDown = true;}, 10);
 			});
 			
 			//Generic document mouseup catch and handler
 			$(document).on("mouseup", function (e) {
-				setTimeout(function () {isMouseDown = false;}, 10);
+				clearTimeout(mouseTimeout);
+				isMouseDown = false;
 				console.log("mup");
 			});
 
@@ -722,13 +730,15 @@
 				var canv = parser.getCanvasJSON();
 				CONFIGS.canvasData = jQuery.extend(true, {}, canv);
 				CONFIGS.canvasId = parser.getCanvasId();
+				$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 				setCanvasDimensions();
 			} else {
+				alert('WARNING! @type of "sc:Canvas" was not found. Page will load a default canvas of width 1000, height 1000. All updates to any annotations found will be reflected on the new canvas.' );
 				//TODO: setup fallback here instead
 				var dummyCan = $.extend(true, {}, dummyCanvas);
 				CONFIGS.canvasData = dummyCan;
 				var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
-				CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
+				// CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
 				CONFIGS.canvasId = CONFIGS.canvasData["@id"];
 				setCanvasDimensions();
 			}
@@ -1140,6 +1150,8 @@
 								CONFIGS.newAnnotationList = null;
 							break;
 							case "canvas":
+								CONFIGS.canvasId = data["@id"];
+								$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 							break;
 							default:
 						}
@@ -1258,14 +1270,7 @@
 						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
 						anoPointer["@id"] = completedPaths[i].annoId;
 						CONFIGS.annotationLists[0]["resources"].push(anoPointer);
-					} else {
-						//set index to where the new annotation list will be
-						completedPaths[i].annoIndex = CONFIGS.newAnnotationList["resources"].length;
-						completedPaths[i].annoListIndex = CONFIGS.annotationLists.length;
-						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
-						anoPointer["@id"] = completedPaths[i].annoId;
-						CONFIGS.newAnnotationList["resources"].push(anoPointer);
-					}
+					} 
 				}
 			}
 			
@@ -1374,6 +1379,18 @@
 				// execAjax({ url : posturl }, "newAnnoList");
 			// } else {
 				
+				
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].annoIndex === -1) {
+					//set index to where the new annotation list will be
+					completedPaths[i].annoIndex = CONFIGS.newAnnotationList["resources"].length;
+					completedPaths[i].annoListIndex = CONFIGS.annotationLists.length;
+					var anoPointer = $.extend(true, {}, dummyAnnoPointer);
+					anoPointer["@id"] = completedPaths[i].annoId;
+					CONFIGS.newAnnotationList["resources"].push(anoPointer);
+				}
+			}
+				
 			//if new annotation list isnt null and has some new annotations in it
 			//This is okay since new anno list gets added to official list after first update
 			//CONFIGS.newAnnotationList then becomes null
@@ -1394,6 +1411,30 @@
 			} else {
 				updateProcedure.run();
 			}
+		};
+		
+		var updateCanvas = function () {
+			var params, posturl;
+			if (CONFIGS.canvasData.hasOwnProperty("@id")) {
+				if (CONFIGS.canvasData["@id"] === "http://www.example.org/dummy/canvas/") {
+					CONFIGS.canvasData["@id"] = null;
+				}
+			}
+			
+			var annoLists = $.extend(true, [], CONFIGS.annotationLists);
+			
+			CONFIGS.canvasData["otherContent"] = annoLists;
+			
+			params = stripExcessJSONData(CONFIGS.canvasData);
+			if (!CONFIGS.canvasData.hasOwnProperty("@id") || CONFIGS.canvasData["@id"] == null) {
+				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
+			} else {
+				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+			}
+			//this seems unnecessary, but let's keep to the previous data flow
+			ajaxRequestQueue.push({url : posturl });
+			execAjax(ajaxRequestQueue.shift(), "canvas");
+			
 		};
 		
 		//TODO: maybe make this support redo
@@ -1633,6 +1674,11 @@
 		var stripExcessJSONData = function (json) {
 			if (typeof json === "string") {
 				json = JSON.parse(json);
+			}
+			if (json.hasOwnProperty("@id")) {
+				if (json["@id"] == null) {
+					delete json["@id"];
+				}
 			}
 			delete json.addedTime;
 			delete json.originalAnnoID;
@@ -2079,7 +2125,9 @@
 		
 		tool.POLY.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
+			$(document).trigger("handler_canvasAnoClear");
 			anchorList.clear();
+			redrawCompletedPaths();
 		};
 		
 		tool.EDIT.mousemove = function (e) {
@@ -2247,7 +2295,9 @@
 		
 		tool.RECT.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
+			$(document).trigger("handler_canvasAnoClear");
 			anchorList.clear();
+			redrawCompletedPaths();
 		};
 		
 	};

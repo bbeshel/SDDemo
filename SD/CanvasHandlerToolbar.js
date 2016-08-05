@@ -59,6 +59,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $debugViewCheckbox = $('<input id="debugViewCheckbox" class="toolbarItem permanent" type="checkbox" name="Debug View" />');
 	
+	var $canvasIdExpose = $('<textarea readonly class="toolbarItem permanent">!No ID!</textarea>');
+	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		prevMode = self.MODE;
@@ -93,11 +95,13 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$toolDiv.append(colorButtonList[n]);
 			console.log(colorButtonList[n]);
 		}
+		$toolDiv.append($canvasIdExpose);
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
-			$(document).trigger("toolbar_changeOperationMode", [$opModeSelector.val()]);
+			$(document).trigger("toolbar_changeOperationMode", [prevMode]);
 			prevMode = $opModeSelector.val();
+			changeCanvasMode(prevMode);
 			// changeCanvasMode($opModeSelector.val());
 		});
 		
@@ -152,11 +156,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			}
 		});
 		
-		
-		
-		$(document).on("toolbar_changeOperationMode", function (e, data) {
-			changeCanvasMode(data);
+		$(document).on("toolbar_exposeCanvasId", function (e, data) {
+			$canvasIdExpose.html(data);
 		});
+		
+		
+		
+		// $(document).on("toolbar_changeOperationMode", function (e, data) {
+			// changeCanvasMode(data);
+		// });
 		
 		$(document).on("toolbar_updateAnnotationData", function () {
 			console.trace("update anno json display");
