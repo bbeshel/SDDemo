@@ -191,9 +191,10 @@
 		
 		//TODO: consider moving to init
 		//Object to house the toolbar and its functions
-		var tool = new CanvasHandlerToolbar(self);
 		
 		var parser = new JSONparser(self);
+
+		var tool = new CanvasHandlerToolbar(self, parser);
 				
 		//TODO: implement as feature
 		//Used as a toggle for closing a shape on click
@@ -376,6 +377,30 @@
 						anno["resource"]["selector"]["chars"] = SVGstring;
 						console.log(SVGstring);
 						//TODO: get the link of this canvas for the on property
+						var xywh = convertToNativeDimensions([
+							this.leftmost,
+							this.rightmost,
+							this.topmost,
+							this.bottommost
+						]);
+						
+						if (anno["on"] == null) {
+							anno["on"] = CONFIGS.canvasId;
+						}
+						var on = anno["on"];
+						
+						if (on.search("#xywh=") > -1) {
+							on = on.substring(0, on.search("#xywh="));
+						} 
+						
+						on += "#xywh=" 
+						+ xywh[0] + "," 
+						+ xywh[2] + "," 
+						+ (xywh[1] - xywh[0]) + "," 
+						+ (xywh[3] - xywh[2]);
+						
+						anno["on"] = on;
+						
 						
 						this.JSON = JSON.stringify(anno);
 						console.log(this.JSON);
@@ -605,13 +630,18 @@
 			});
 			
 			//Changes the mode of operation on the canvas
-			$(document).on("toolbar_changeOperationMode", function () {
-				resetSharedParams();
+			$(document).on("toolbar_changeOperationMode", function (e, data) {
+				tool[data].reset();
 			});
 			
 			$(document).on("toolbar_annoItemClick", function (e, data) {
 				console.log(data);
 				$(document).trigger("handler_canvasIntClear");
+				//Simulate a click for edit mode if we are in that mode
+				//We don't want to switch the user to edit mode without knowing
+				if (tool.MODE === "EDIT") {
+					tool.EDIT.click(e, data);
+				}
 				drawPathIndicator(data);
 			});
 			
@@ -728,7 +758,7 @@
 				tool.setDummyState();
 			}
 			//TODO: remove until completed testing
-			tool.setDummyState();
+			// tool.setDummyState();
 			
 			updateAnnotationListIndices();
 			
@@ -1040,7 +1070,7 @@
 			}
 			var cPath = $.extend(true, [], completedPaths);
 			undoList.push(cPath);
-			$(document).trigger("toolbar_updateAnnotationData");
+			// $(document).trigger("toolbar_updateAnnotationData");
 			console.log(undoList);
 		};
 		
@@ -1148,10 +1178,10 @@
 					if (completedPaths[i].annoId == null) {
 						// params = JSON.stringify(json);
 						// params = completedPaths[i].JSON;
-						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
 					} else {
 						// params = completedPaths[i].JSON;
-						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 					}
 					ajaxRequestQueue.push({ url : posturl, index : i });
 					
@@ -1242,13 +1272,13 @@
 			// if (!CONFIGS.annotationLists[j].hasOwnProperty("@id")) {
 				
 				// params = JSON.stringify(CONFIGS.annotationLists[j]);
-				// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+				// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
 				// ajaxRequestQueue.push(posturl);
 			// }
 			
 			// if (curAnnoNeedsUpdate) {
 				var params = stripExcessJSONData(CONFIGS.annotationLists[curAnoListIndex]);
-				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 				ajaxRequestQueue.push({ url : posturl, index : curAnoListIndex});
 				console.log(posturl);
 				// execAjax({ url : posturl }, "annoList");
@@ -1288,7 +1318,7 @@
 					// var annoPointer = { "@id" : null };
 					// annoPointer["@id"] = completedPaths[i].annoId;
 					// var params = JSON.stringify(annoPointer);
-					// var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+					// var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 					posturl = completedPaths[i].annoId;
 					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
@@ -1336,7 +1366,7 @@
 			// if (CONFIGS.newAnnotationList.hasOwnProperty("@id")) {
 				// // params = JSON.stringify({ "@id" : CONFIGS.newAnnotationList["@id"] });
 				// params = JSON.stringify(CONFIGS.newAnnotationList);
-				// posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + params;
+				// posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 				// execAjax({ url : posturl }, "newAnnoList");
 			// } else {
 				
@@ -1345,7 +1375,7 @@
 			//CONFIGS.newAnnotationList then becomes null
 			if (CONFIGS.newAnnotationList != null && CONFIGS.newAnnotationList["resources"].length > 0) {
 				params = JSON.stringify(CONFIGS.newAnnotationList);
-				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + params;
+				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
 				execAjax({ url : posturl } , "newAnnoList");
 			} else {
 				updateProcedure.run();
@@ -1650,6 +1680,14 @@
 			throw new Error("Unable to copy obj! Its type isn't supported.");
 
 		};
+		
+		var getCompletedPathsIndex = function (path) {
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i] === path) {
+					return i;
+				}
+			}
+		};
 
 	
 		//Checks if the user clicked inside a completed annotation during edit mode (selected a shaoe)
@@ -1855,6 +1893,7 @@
 			updateCompletedPaths();
 			updateJSON();
 			// $(document).trigger("handler_resetAnnoUpdateStatus");
+			$(document).trigger("toolbar_annoItemsDeHighlight");
 			$(document).trigger("toolbar_updateAnnotationData");
 			pushUndo();
 			
@@ -1865,6 +1904,21 @@
 			isEditingPath = false;
 			isAnchorSelected = false;
 			isShapeMoved = false;
+			
+			//TODO: update only the associated item in toolbar
+		};
+		
+		var cancelEditChanges = function () {
+			$(document).trigger("handler_canvasIntClear");
+			selectedPathsCurIndex = 0;
+			selectedPathsAnchorIndex = null;
+			selectedPaths = [];
+			isInSelectedAnno = false;
+			isEditingPath = false;
+			isAnchorSelected = false;
+			isShapeMoved = false;
+			
+			
 		};
 
 		//Redraw all the shapes that were not edited
@@ -2016,11 +2070,18 @@
 			}
 		};
 		
+		tool.POLY.reset = function () {
+			$(document).trigger("handler_canvasIntClear");
+			anchorList.clear();
+		};
+		
 		tool.EDIT.mousemove = function (e) {
-			//console.log(isAnchorSelected);
+			console.log(isAnchorSelected);
+			console.log(prevmPos);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+			console.log(md);
 			if (isMouseDown && isInSelectedAnno && !isAnchorSelected) {
-				
+				console.log("updateing shape");
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
@@ -2035,7 +2096,15 @@
 		};
 		
 		//TODO: probably need to separate these or make better conditions...
-		tool.EDIT.click = function (e) {
+		tool.EDIT.click = function (e, data) {
+			var pathChosen = false;
+			if (data != null) {
+				cancelEditChanges();
+				pathChosen = true;
+				var cInd = getCompletedPathsIndex(data);
+				isInSelectedAnno = true;
+				selectedPaths.push( { path : data, compIndex : cInd } );
+			}
 			
 			// selectedPaths = [];
 			if (!isEditingPath) {
@@ -2043,10 +2112,12 @@
 				//console.log(tool.MODE);
 				console.log("Detected Shape!!");
 				
-				var mPosCur = mPos;
-				
-				for (var i = 0; i < completedPaths.length; i++) {
-					checkIfInAnnoBounds(completedPaths[i], mPosCur, i);
+				if (!pathChosen) {
+					var mPosCur = mPos;
+					
+					for (var i = 0; i < completedPaths.length; i++) {
+						checkIfInAnnoBounds(completedPaths[i], mPosCur, i);
+					}
 				}
 				
 				if (selectedPaths.length > 0) {
@@ -2109,6 +2180,10 @@
 			saveEditChanges();
 		};
 		
+		tool.EDIT.reset = function () {
+			cancelEditChanges();
+		};
+		
 		tool.RECT.click = function () {
 			if (anchorList.length < 1) {
 				addAnchor();
@@ -2157,6 +2232,11 @@
 				
 			}
 			
+		};
+		
+		tool.RECT.reset = function () {
+			$(document).trigger("handler_canvasIntClear");
+			anchorList.clear();
 		};
 		
 	};

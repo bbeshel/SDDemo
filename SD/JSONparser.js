@@ -21,6 +21,7 @@
 		//Recurse iterator to help notify when parsing is done
 		var recurseIter = 0;
 		
+	
 		/*Recursive. Parses through an entire JSON, pulling out
 		* important data relevant to the SharedCanvas.
 		* @param canvasObject	JSON object
@@ -126,6 +127,47 @@
 
 		};
 		
+		self.getAssociatedAnnoText = function (json, strOb) {
+			if (strOb == null) {
+				strOb = {
+					"label" : null,
+					"cnt:chars" : null,
+					"chars" : null
+				};
+			}
+			
+			if (typeof json === "string") {
+				json = JSON.parse(json);
+			}
+			
+			var doSearch = function (ob, str) {
+			
+				
+				if (ob.hasOwnProperty("chars")) {
+					str["chars"] = ob["chars"];
+				}
+				if (ob.hasOwnProperty("cnt:chars")) {
+					str["cnt:chars"] = ob["cnt:chars"];
+				}
+				if (ob.hasOwnProperty("label")) {
+					str["label"] = ob["label"];
+				}
+				
+				for (var n in ob) {
+					if (Array.isArray(ob[n]) || typeof (ob[n]) === "object") {
+						doSearch(ob[n], str);
+					}
+				}
+			};
+			doSearch(json, strOb);
+			
+			console.log(json);
+			console.log(strOb);
+			
+			return strOb;
+			
+		};
+		
 		/*Checks to see if the JSON key-value pair are validChecker
 		* @param objectValue	the value to be checked
 		* @return bool	
@@ -194,6 +236,7 @@
 				}
 			).fail( function() {
 				alert("A problem has been found. Cannot resolve URL in JSON.");
+				recurseIter--;
 				}
 			);
 		};

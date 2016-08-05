@@ -1,15 +1,19 @@
 
 
-var CanvasHandlerToolbar = function (parentContext) {
+var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var chandlerParent = parentContext;
+	
+	var parser = parserContext;
 	
 	var self = this;
 	
 	
 	self.OPTIONS = {
-		jsonView : true
+		jsonView : false
 	};
+	
+	var prevMode = "";
 		
 	
 	self.MODE = "";
@@ -57,6 +61,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
+		prevMode = self.MODE;
 		for (var n in chandlerParent.MODES) {
 			var $op = $(
 				"<option value='" + chandlerParent.MODES[n] + "'>" 
@@ -91,8 +96,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 		// $toolDiv.append($saveEditChanges);
 		
 		$opModeSelector.on("change", function () {
-			var val = $opModeSelector.val();
-			$(document).trigger("toolbar_changeOperationMode", [val]);
+			$(document).trigger("toolbar_changeOperationMode", [$opModeSelector.val()]);
+			prevMode = $opModeSelector.val();
 			// changeCanvasMode($opModeSelector.val());
 		});
 		
@@ -154,7 +159,8 @@ var CanvasHandlerToolbar = function (parentContext) {
 		});
 		
 		$(document).on("toolbar_updateAnnotationData", function () {
-			updateJSONDisplay();
+			console.trace("update anno json display");
+			generateJSONDisplay();
 		});
 		// $buttonEdit.on("click", function () {
 			// changeCanvasMode("EDIT");
@@ -165,9 +171,17 @@ var CanvasHandlerToolbar = function (parentContext) {
 			annoItemHighlight(annoItemList[annoIndex]);
 		});
 		
+		$(document).on("toolbar_annoItemsDeHighlight", function () {
+			annoItemsDeHighlight();
+		});
+		
 	};
 	
-	var updateJSONDisplay = function () {
+	var generateJSONDisplay = function () {
+		if (annoItemList.length > 0) {
+			updateJSONDisplay();
+			return;
+		}
 		// $jsonDisplay.val("");
 		// var string = "";
 		// var annos = chandlerParent.getCompletedPaths();
@@ -200,12 +214,90 @@ var CanvasHandlerToolbar = function (parentContext) {
 				div = $(jsonItemString);
 				var x = annos[i].JSON;
 				x = x.replace(/\\"/g, '"');
-				var comments = annos[i].getAnnoComments();
-				div.html(comments);
+				var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+				console.log(comments);
+				
+				var hts = "";
+				if (comments["label"] != null) {
+					hts += "LABEL" + comments["label"];
+					hts += "\n";
+				}
+				if (comments["cnt:chars"] != null) {
+					hts += "CNT:CHARS" + comments["cnt:chars"];
+					hts += "\n";
+				}
+				if (comments["chars"] != null) {
+					hts += "CHARS" + comments["chars"];
+					hts += "\n";
+				}
+				div.html(hts);
 				div.path = annos[i];
 				setupAnnoEvents(div);
 				annoItemList.push(div);
 				$jsonContainer.append(div);
+			}
+		}
+	};
+	
+	var updateJSONDisplay = function () {
+		var div;
+		var annos = chandlerParent.getCompletedPaths();
+		if (self.OPTIONS.jsonView) {
+			for (var i = 0; i < annos.length; i++) {
+				if (annos[i].JSON != null && annos[i].needsUpdate) {
+					if (i !== annos.length - 1 && annos.length > annoItemList.length) {
+						$(annoItemList[i]).remove();
+					}
+					div = $(jsonItemString);
+					var x = annos[i].JSON;
+					x = x.replace(/\\"/g, '"');
+					div.html(x);
+					console.log(annos[i].JSON);
+					div.path = annos[i];
+					setupAnnoEvents(div);
+					if (i !== annos.length - 1 > annoItemList.length) {
+						annoItemList[i] = div;
+					} else {
+						annoItemList.push(div);
+					}
+					$jsonContainer.append(div);
+				}
+			}
+		} else {
+			for (var i = 0; i < annos.length; i++) {
+				if (annos[i].JSON != null && annos[i].needsUpdate) {
+					if (i !== annos.length - 1 > annoItemList.length) {
+						$(annoItemList[i]).remove();
+					}
+					div = $(jsonItemString);
+					var x = annos[i].JSON;
+					x = x.replace(/\\"/g, '"');
+					var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+					console.log(comments);
+					
+					var hts = "";
+					if (comments["label"] != null) {
+						hts += "LABEL" + comments["label"];
+						hts += "\n";
+					}
+					if (comments["cnt:chars"] != null) {
+						hts += "CNT:CHARS" + comments["cnt:chars"];
+						hts += "\n";
+					}
+					if (comments["chars"] != null) {
+						hts += "CHARS" + comments["chars"];
+						hts += "\n";
+					}
+					div.html(hts);
+					div.path = annos[i];
+					setupAnnoEvents(div);
+					if (i !== annos.length - 1 > annoItemList.length) {
+						annoItemList[i] = div;
+					} else {
+						annoItemList.push(div);
+					}
+					$jsonContainer.append(div);
+				}
 			}
 		}
 	};
@@ -277,7 +369,7 @@ var CanvasHandlerToolbar = function (parentContext) {
 		var pos = $jsonContainer.scrollTop();
 		var elPos = div.position().top;
 		$jsonContainer.animate({
-			scrollTop: pos + elPos - 300
+			scrollTop: pos + elPos - 500
 		});
 		console.log(div.position().top);
 	};
