@@ -46,7 +46,7 @@
 		    "sandbox" : "bbeshel",
 			"resource" : {
 				"@type" : "cnt:ContentAsText",
-				"chars" : "<none>"
+				"chars" : "<no text associated>"
 			},
 			"on" : null
 		};
@@ -304,6 +304,9 @@
 			annoListIndex: -1,
 			annoIndex: -1,
 			annoId: null,
+			"label": null,
+			"chars": null,
+			"cnt:chars": null,
 			type: null,
 			JSON: null,
 			needsUpdate: false,
@@ -333,6 +336,9 @@
 				this.annoListIndex = -1;
 				this.annoIndex = -1;
 				this.annoId = null;
+				this["label"] = null,
+				this["chars"] = null,
+				this["cnt:chars"] = null,
 				this.type = null;
 				this.JSON = null;
 				this.needsUpdate = false;
@@ -367,6 +373,11 @@
 			},
 			getBoundingBoxArea: function () {
 				return Math.abs(this.rightmost - this.leftmost) * Math.abs(this.bottommost - this.topmost);
+			},
+			hasNewText : function () {
+				if (this["chars"] != null || this["cnt:chars"] != null || this["label"] != null) {
+					return true;
+				}
 			},
 			generateJSON: function () {
 				var anno;
@@ -408,7 +419,16 @@
 						
 						
 						this.JSON = JSON.stringify(anno);
-						console.log(this.JSON);
+						
+						if (this["label"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "label", this["label"]);
+						}
+						if (this["chars"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "chars", this["chars"]);
+						}
+						if (this["cnt:chars"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "cnt:chars", this["cnt:chars"]);
+						}
 						
 						break;
 					case "RECT":
@@ -446,7 +466,19 @@
 						console.log(this.x);
 						console.log(this.y);
 						
+						
 						this.JSON = JSON.stringify(anno);
+						
+						if (this["label"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "label", this["label"]);
+						}
+						if (this["chars"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "chars", this["chars"]);
+						}
+						if (this["cnt:chars"] != null) {
+							this.JSON = editCharsPropForJSON(this.JSON, "cnt:chars", this["cnt:chars"]);
+						}
+						
 						break;
 					default:
 					
@@ -648,6 +680,13 @@
 				drawPathIndicator(data);
 			});
 			
+			$(document).on("toolbar_annoItemCharsUpdate", function (e, path, prop, comment) {
+				var ind = getCompletedPathsIndex(path);
+				completedPaths[ind][prop] = comment;
+				completedPaths[ind].needsUpdate = true;
+			}); 
+			
+			
 			//Generic document mousemove catch and handler
 			$(document).on("mousemove", function (e) {
 				//Update the mouse coordinates, etc...
@@ -684,9 +723,9 @@
 			//Dynamic document keydown catch and handler
 			$(document).keydown(function (e) {
 				switch(e.which) {
-					case 32: //space
+					case 9: //space
 						e.preventDefault();
-						tool[tool.MODE].space(e);
+						tool[tool.MODE].tab(e);
 					break;
 					case 13: //enter
 						tool[tool.MODE].enter(e);
@@ -1052,6 +1091,29 @@
 			}
 			return type;
 			
+		};
+		
+		var editCharsPropForJSON = function (json, prop, comment) {
+			if (typeof json === "string") {
+				json = JSON.parse(json);
+			}
+			
+			var doSearch = function (ob, prop, comment) {
+				if (ob.hasOwnProperty(prop)) {
+					ob[prop] = comment;
+					return;
+				}
+				
+				for (var n in ob) {
+					if (Array.isArray(ob[n]) || typeof (ob[n]) === "object") {
+						doSearch(ob[n], prop, comment);
+					}
+				}
+				
+			};
+			doSearch(json, prop, comment);
+			console.log(json);
+			return JSON.stringify(json);
 		};
 		
 		var generateAllJSON = function () {
@@ -2216,7 +2278,7 @@
 		};
 		
 		
-		tool.EDIT.space = function (e) {
+		tool.EDIT.tab = function (e) {
 			//this will be used to cycle through overlapping shapes...
 			
 			if (!isShapeMoved && !isAnchorSelected) {

@@ -168,6 +168,19 @@
 			
 		};
 		
+		// self.editAssociatedAnnoText = function (json, prop, text) {
+			// if (typeof json === "string") {
+				// json = JSON.parse(json);
+			// }
+			
+			// var doSearch = function (ob, prop, text) {
+				// if (ob.hasOwnProperty(prop)) {
+					// ob[prop] = text;
+					
+				// }
+			// };
+		// };
+		
 		/*Checks to see if the JSON key-value pair are validChecker
 		* @param objectValue	the value to be checked
 		* @return bool	

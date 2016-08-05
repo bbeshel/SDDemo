@@ -286,6 +286,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					hts = "(No text)";
 				}
 				div.html(hts);
+				div.editable = comments;
 				div.path = annos[i];
 				setupAnnoEvents(div);
 				annoItemList.push(div);
@@ -327,29 +328,39 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
-					var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+					if (annos[i].hasNewText()) {
+						var comments = { 
+							"label" : annos[i]["label"],
+							"chars" : annos[i]["chars"],
+							"cnt:chars" : annos[i]["cnt:chars"]
+						};
+					} else {
+						var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+					}
 					console.log(comments);
 					
 					var hts = "";
 					if (comments["label"] != null) {
-						hts += "LABEL" + comments["label"];
+						hts += "LABEL: " + comments["label"];
 						hts += "\n";
 					}
 					if (comments["cnt:chars"] != null) {
-						hts += "CNT:CHARS" + comments["cnt:chars"];
+						hts += "CNT:CHARS: " + comments["cnt:chars"];
 						hts += "\n";
 					}
 					if (comments["chars"] != null) {
-						hts += "CHARS" + comments["chars"];
+						hts += "CHARS: " + comments["chars"];
 						hts += "\n";
 					}
 					if (hts.length < 1) {
 						hts = "(No text)";
 					}
 					div.html(hts);
+					div.editable = comments;
 					div.path = annos[i];
 					setupAnnoEvents(div);
 					if (i < annoItemList.length) {
+						annoItemList[i].editable = comments;
 						annoItemList[i].path = annos[i];
 						annoItemList[i].html(hts);
 					} else {
@@ -417,7 +428,35 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		div.on("click", function () {
 			$(document).trigger("toolbar_annoItemClick", [div.path]);
 			annoItemHighlight(div);
+			setupAnnoCharEdit(div);
 		});
+	};
+	
+	var setupAnnoCharEdit = function (div) {
+		var $textDiv = $("<div id='annoCharsBox' class='toolbarItem'></div>");
+		var isChars = false;
+		for (var n in div.editable) {
+			if (div.editable[n] != null) {
+				isChars = true;
+				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
+				var $textBox = $("<textarea class='toolbarAnnoTextItem'>" + div.editable[n] + "</textarea>");
+				$textBox.on("focusout", function () {
+					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, n, $textBox.val()]);
+					updateJSONDisplay();
+				});
+				$textDiv.append($textBoxLabel);
+				$textDiv.append($textBox);
+				
+			} else {
+				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
+				var $textBox = $("<textarea readonly placeholder='NO LABEL: CANNOT EDIT' class='toolbarAnnoTextItem'></textarea>");
+				$textDiv.append($textBoxLabel);
+				$textDiv.append($textBox);
+			}
+		}
+		if (isChars) {
+			$toolDiv.append($textDiv);
+		}
 	};
 	
 	var annoItemsDeHighlight = function () {
@@ -426,6 +465,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var annoItemHighlight = function (div) {
 		annoItemsDeHighlight();
+		$("#annoCharsBox").remove();
 		div.addClass("toolbarAnnoItemSelected");
 		var pos = $jsonContainer.scrollTop();
 		var elPos = div.position().top;

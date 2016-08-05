@@ -49,6 +49,16 @@
 	background-color: #AA3333;
 }
 
+#annoCharsBox {
+	display: table;
+	table-layout: fixed;
+}
+
+.toolbarAnnoTextItem {
+	display: table-cell;
+	text-align: center;
+}
+
 body {
 	background-color: #BADBAD;
 }
