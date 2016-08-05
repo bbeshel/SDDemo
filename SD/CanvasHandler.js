@@ -766,6 +766,8 @@
 			
 			redrawCompletedPaths();
 			
+			$(document).trigger("toolbar_updateAnnotationData");
+			
 			pushUndo();
 			// setCanvasDimensions();
 			// drawAndResizeImage();
@@ -1544,7 +1546,7 @@
 				// completedPaths.push(clone(anchorList));
 				var an = $.extend(true, {}, anchorList);
 				completedPaths.push(an)
-				createSVGTag(anchorList);
+				// createSVGTag(anchorList);
 				anchorList.clear();
 				console.log(completedPaths);
 				$(document).trigger("toolbar_updateAnnotationData");
@@ -1584,10 +1586,11 @@
 			
 		};
 		
-		var createSVGTag = function (anchors) {
+		var createSVGTag = function (rawAnchors) {
 			//Not sure if we need this width/height
 			//TODO: possibly set width/height to SC dims
 			//TODO: convert points to relative width/height of SC
+			var anchors = $.extend(true, {}, rawAnchors);
 			anchors.x = convertToNativeDimensions(anchors.x);
 			anchors.y = convertToNativeDimensions(anchors.y);
 			
@@ -1948,7 +1951,7 @@
 				}
 				skipPath = false;
 			}
-			$(document).trigger("toolbar_updateAnnotationData");
+			// $(document).trigger("toolbar_updateAnnotationData");
 		};
 		
 		//Sorts selected list of shapes by bounding box area

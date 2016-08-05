@@ -248,9 +248,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		if (self.OPTIONS.jsonView) {
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					if (i !== annos.length - 1 && annos.length > annoItemList.length) {
-						$(annoItemList[i]).remove();
-					}
+					// if (i !== annos.length - 1 && annos.length > annoItemList.length) {
+						// $(annoItemList[i]).remove();
+					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
@@ -258,20 +258,20 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					console.log(annos[i].JSON);
 					div.path = annos[i];
 					setupAnnoEvents(div);
-					if (i !== annos.length - 1 > annoItemList.length) {
+					if (i < annoItemList.length) {
 						annoItemList[i] = div;
 					} else {
 						annoItemList.push(div);
+						$jsonContainer.append(div);
 					}
-					$jsonContainer.append(div);
 				}
 			}
 		} else {
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					if (i !== annos.length - 1 > annoItemList.length) {
-						$(annoItemList[i]).remove();
-					}
+					// if (i !== annos.length - 1 > annoItemList.length) {
+						// $(annoItemList[i]).remove();
+					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
@@ -291,15 +291,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 						hts += "CHARS" + comments["chars"];
 						hts += "\n";
 					}
+					if (hts.length < 1) {
+						hts = "(No text)";
+					}
 					div.html(hts);
 					div.path = annos[i];
 					setupAnnoEvents(div);
-					if (i !== annos.length - 1 > annoItemList.length) {
-						annoItemList[i] = div;
+					if (i < annoItemList.length) {
+						annoItemList[i].path = annos[i];
+						annoItemList[i].html(hts);
 					} else {
 						annoItemList.push(div);
+						$jsonContainer.append(div);
 					}
-					$jsonContainer.append(div);
 				}
 			}
 		}
