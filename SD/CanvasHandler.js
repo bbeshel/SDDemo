@@ -1537,6 +1537,8 @@
 				anchorList.generateJSON();
 				console.log(anchorList);
 				anchorList.needsUpdate = true;
+				anchorList.strokeStyle = CONFIGS.anno.strokeStyle;
+				anchorList.lineWidth = CONFIGS.anno.lineWidth;
 				// completedPaths.push(clone(anchorList));
 				var an = $.extend(true, {}, anchorList);
 				completedPaths.push(an)
@@ -1732,6 +1734,8 @@
 			
 		//Draws a given path in its entirety
 		var drawPath = function (path) {
+			anoCx.strokeStyle = path.strokeStyle;
+			anoCx.lineWidth = path.lineWidth;
 			anoCx.beginPath();
 			anoCx.moveTo(path.x[0], path.y[0]);
 			for (var i = 1; i < path.length; i++) {
@@ -1762,8 +1766,8 @@
 				// completedPaths[curInd] = clone(selectedPaths[i].path);
 				var p = $.extend(true, {}, selectedPaths[i].path);
 				completedPaths[curInd] = p;
-				CONFIGS.anno.lineWidth = selectedPaths[i].lineWidth;
-				CONFIGS.anno.strokeStyle = selectedPaths[i].strokeStyle;
+				// CONFIGS.anno.lineWidth = selectedPaths[i].lineWidth;
+				// CONFIGS.anno.strokeStyle = selectedPaths[i].strokeStyle;
 			}
 		};
 		
