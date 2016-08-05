@@ -146,6 +146,9 @@
 				},
 				function () {
 					updateLocalNewAnnotationListJSON();
+				},
+				function () {
+					updateCanvas();
 				}
 			],
 			run : function () {
@@ -202,6 +205,8 @@
 		
 		//Bool for checking if the mouse is near an anchor. Based on CONFIGS.snapZone
 		var isInSnapZone = false;
+		
+		var mouseTimeout;
 		
 		//Bool for mouse down
 		var isMouseDown = false;
@@ -663,12 +668,16 @@
 			
 			//Generic document mousedown catch and handler
 			$(document).on("mousedown", function (e) {
-				isMouseDown = true;
+				clearTimeout(mouseTimeout);
+				mouseTimeout = null;
+				mouseTimeout = setTimeout(function () {isMouseDown = true;}, 10);
 			});
 			
 			//Generic document mouseup catch and handler
 			$(document).on("mouseup", function (e) {
+				clearTimeout(mouseTimeout);
 				isMouseDown = false;
+				console.log("mup");
 			});
 
 			//TODO: make sure we dont call a function that doesnt exist!
@@ -676,6 +685,7 @@
 			$(document).keydown(function (e) {
 				switch(e.which) {
 					case 32: //space
+						e.preventDefault();
 						tool[tool.MODE].space(e);
 					break;
 					case 13: //enter
@@ -718,13 +728,15 @@
 				var canv = parser.getCanvasJSON();
 				CONFIGS.canvasData = jQuery.extend(true, {}, canv);
 				CONFIGS.canvasId = parser.getCanvasId();
+				$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 				setCanvasDimensions();
 			} else {
+				alert('WARNING! @type of "sc:Canvas" was not found. Page will load a default canvas of width 1000, height 1000. All updates to any annotations found will be reflected on the new canvas.' );
 				//TODO: setup fallback here instead
 				var dummyCan = $.extend(true, {}, dummyCanvas);
 				CONFIGS.canvasData = dummyCan;
 				var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
-				CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
+				// CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
 				CONFIGS.canvasId = CONFIGS.canvasData["@id"];
 				setCanvasDimensions();
 			}
@@ -761,6 +773,8 @@
 			updateAnnotationListIndices();
 			
 			redrawCompletedPaths();
+			
+			$(document).trigger("toolbar_updateAnnotationData");
 			
 			pushUndo();
 			// setCanvasDimensions();
@@ -1134,6 +1148,8 @@
 								CONFIGS.newAnnotationList = null;
 							break;
 							case "canvas":
+								CONFIGS.canvasId = data["@id"];
+								$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 							break;
 							default:
 						}
@@ -1252,14 +1268,7 @@
 						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
 						anoPointer["@id"] = completedPaths[i].annoId;
 						CONFIGS.annotationLists[0]["resources"].push(anoPointer);
-					} else {
-						//set index to where the new annotation list will be
-						completedPaths[i].annoIndex = CONFIGS.newAnnotationList["resources"].length;
-						completedPaths[i].annoListIndex = CONFIGS.annotationLists.length;
-						var anoPointer = $.extend(true, {}, dummyAnnoPointer);
-						anoPointer["@id"] = completedPaths[i].annoId;
-						CONFIGS.newAnnotationList["resources"].push(anoPointer);
-					}
+					} 
 				}
 			}
 			
@@ -1368,6 +1377,18 @@
 				// execAjax({ url : posturl }, "newAnnoList");
 			// } else {
 				
+				
+			for (var i = 0; i < completedPaths.length; i++) {
+				if (completedPaths[i].annoIndex === -1) {
+					//set index to where the new annotation list will be
+					completedPaths[i].annoIndex = CONFIGS.newAnnotationList["resources"].length;
+					completedPaths[i].annoListIndex = CONFIGS.annotationLists.length;
+					var anoPointer = $.extend(true, {}, dummyAnnoPointer);
+					anoPointer["@id"] = completedPaths[i].annoId;
+					CONFIGS.newAnnotationList["resources"].push(anoPointer);
+				}
+			}
+				
 			//if new annotation list isnt null and has some new annotations in it
 			//This is okay since new anno list gets added to official list after first update
 			//CONFIGS.newAnnotationList then becomes null
@@ -1388,6 +1409,30 @@
 			} else {
 				updateProcedure.run();
 			}
+		};
+		
+		var updateCanvas = function () {
+			var params, posturl;
+			if (CONFIGS.canvasData.hasOwnProperty("@id")) {
+				if (CONFIGS.canvasData["@id"] === "http://www.example.org/dummy/canvas/") {
+					CONFIGS.canvasData["@id"] = null;
+				}
+			}
+			
+			var annoLists = $.extend(true, [], CONFIGS.annotationLists);
+			
+			CONFIGS.canvasData["otherContent"] = annoLists;
+			
+			params = stripExcessJSONData(CONFIGS.canvasData);
+			if (!CONFIGS.canvasData.hasOwnProperty("@id") || CONFIGS.canvasData["@id"] == null) {
+				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
+			} else {
+				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+			}
+			//this seems unnecessary, but let's keep to the previous data flow
+			ajaxRequestQueue.push({url : posturl });
+			execAjax(ajaxRequestQueue.shift(), "canvas");
+			
 		};
 		
 		//TODO: maybe make this support redo
@@ -1540,7 +1585,7 @@
 				// completedPaths.push(clone(anchorList));
 				var an = $.extend(true, {}, anchorList);
 				completedPaths.push(an)
-				createSVGTag(anchorList);
+				// createSVGTag(anchorList);
 				anchorList.clear();
 				console.log(completedPaths);
 				$(document).trigger("toolbar_updateAnnotationData");
@@ -1580,10 +1625,11 @@
 			
 		};
 		
-		var createSVGTag = function (anchors) {
+		var createSVGTag = function (rawAnchors) {
 			//Not sure if we need this width/height
 			//TODO: possibly set width/height to SC dims
 			//TODO: convert points to relative width/height of SC
+			var anchors = $.extend(true, {}, rawAnchors);
 			anchors.x = convertToNativeDimensions(anchors.x);
 			anchors.y = convertToNativeDimensions(anchors.y);
 			
@@ -1626,6 +1672,11 @@
 		var stripExcessJSONData = function (json) {
 			if (typeof json === "string") {
 				json = JSON.parse(json);
+			}
+			if (json.hasOwnProperty("@id")) {
+				if (json["@id"] == null) {
+					delete json["@id"];
+				}
 			}
 			delete json.addedTime;
 			delete json.originalAnnoID;
@@ -1940,17 +1991,15 @@
 				if (!skipPath) {
 					var currentLineWidth = CONFIGS.anno.lineWidth;
 					var currentStrokeStyle = CONFIGS.anno.strokeStyle;
-					console.log(CONFIGS.anno.strokeStyle);
 					//CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
 					//CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
-					console.log(CONFIGS.anno.strokeStyle);
 					drawPath(completedPaths[i]);
 					//CONFIGS.anno.lineWidth = currentLineWidth;
 					//CONFIGS.anno.strokeStyle = currentStrokeStyle;
 				}
 				skipPath = false;
 			}
-			$(document).trigger("toolbar_updateAnnotationData");
+			// $(document).trigger("toolbar_updateAnnotationData");
 		};
 		
 		//Sorts selected list of shapes by bounding box area
@@ -2078,16 +2127,22 @@
 		
 		tool.POLY.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
+			$(document).trigger("handler_canvasAnoClear");
 			anchorList.clear();
+			redrawCompletedPaths();
 		};
 		
 		tool.EDIT.mousemove = function (e) {
-			console.log(isAnchorSelected);
-			console.log(prevmPos);
+			// console.log(isAnchorSelected);
+			// console.log(prevmPos);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
-			console.log(md);
+			if (md.x === 0 && md.y === 0) {
+				console.log("prevented mousemove");
+			}
+			// console.log(md);
+			// console.log(isMouseDown);
 			if (isMouseDown && isInSelectedAnno && !isAnchorSelected) {
-				console.log("updateing shape");
+				console.trace("updateing shape");
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);
@@ -2242,7 +2297,9 @@
 		
 		tool.RECT.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
+			$(document).trigger("handler_canvasAnoClear");
 			anchorList.clear();
+			redrawCompletedPaths();
 		};
 		
 	};

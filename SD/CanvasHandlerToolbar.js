@@ -69,6 +69,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $debugViewCheckbox = $('<input id="debugViewCheckbox" class="toolbarItem permanent" type="checkbox" name="Debug View" />');
 	
+	var $canvasIdExpose = $('<textarea readonly class="toolbarItem permanent">!No ID!</textarea>');
+	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		prevMode = self.MODE;
@@ -106,11 +108,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$toolDiv.append(colorButtonList[n]);
 			console.log(colorButtonList[n]);
 		}
+		$toolDiv.append($canvasIdExpose);
 		// $toolDiv.append($saveEditChanges);
 		
 		/*$opModeSelector.on("change", function () {
 			$(document).trigger("toolbar_changeOperationMode", [$opModeSelector.val()]);
+
+			$opModeSelector.on("change", function () {
+			$(document).trigger("toolbar_changeOperationMode", [prevMode]);
 			prevMode = $opModeSelector.val();
+			changeCanvasMode(prevMode);
 			// changeCanvasMode($opModeSelector.val());
 		});*/
 		
@@ -193,11 +200,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			}
 		});
 		
-		
-		
-		$(document).on("toolbar_changeOperationMode", function (e, data) {
-			changeCanvasMode(data);
+		$(document).on("toolbar_exposeCanvasId", function (e, data) {
+			$canvasIdExpose.html(data);
 		});
+		
+		
+		
+		// $(document).on("toolbar_changeOperationMode", function (e, data) {
+			// changeCanvasMode(data);
+		// });
 		
 		$(document).on("toolbar_updateAnnotationData", function () {
 			console.trace("update anno json display");
@@ -260,16 +271,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				
 				var hts = "";
 				if (comments["label"] != null) {
-					hts += "LABEL" + comments["label"];
+					hts += "LABEL: " + comments["label"];
 					hts += "\n";
 				}
 				if (comments["cnt:chars"] != null) {
-					hts += "CNT:CHARS" + comments["cnt:chars"];
+					hts += "CNT:CHARS: " + comments["cnt:chars"];
 					hts += "\n";
 				}
 				if (comments["chars"] != null) {
-					hts += "CHARS" + comments["chars"];
+					hts += "CHARS: " + comments["chars"];
 					hts += "\n";
+				}
+				if (hts.length < 1) {
+					hts = "(No text)";
 				}
 				div.html(hts);
 				div.path = annos[i];
@@ -286,9 +300,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		if (self.OPTIONS.jsonView) {
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					if (i !== annos.length - 1 && annos.length > annoItemList.length) {
-						$(annoItemList[i]).remove();
-					}
+					// if (i !== annos.length - 1 && annos.length > annoItemList.length) {
+						// $(annoItemList[i]).remove();
+					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
@@ -296,20 +310,20 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					console.log(annos[i].JSON);
 					div.path = annos[i];
 					setupAnnoEvents(div);
-					if (i !== annos.length - 1 > annoItemList.length) {
+					if (i < annoItemList.length) {
 						annoItemList[i] = div;
 					} else {
 						annoItemList.push(div);
+						$jsonContainer.append(div);
 					}
-					$jsonContainer.append(div);
 				}
 			}
 		} else {
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					if (i !== annos.length - 1 > annoItemList.length) {
-						$(annoItemList[i]).remove();
-					}
+					// if (i !== annos.length - 1 > annoItemList.length) {
+						// $(annoItemList[i]).remove();
+					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
@@ -329,15 +343,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 						hts += "CHARS" + comments["chars"];
 						hts += "\n";
 					}
+					if (hts.length < 1) {
+						hts = "(No text)";
+					}
 					div.html(hts);
 					div.path = annos[i];
 					setupAnnoEvents(div);
-					if (i !== annos.length - 1 > annoItemList.length) {
-						annoItemList[i] = div;
+					if (i < annoItemList.length) {
+						annoItemList[i].path = annos[i];
+						annoItemList[i].html(hts);
 					} else {
 						annoItemList.push(div);
+						$jsonContainer.append(div);
 					}
-					$jsonContainer.append(div);
 				}
 			}
 		}
