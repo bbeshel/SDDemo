@@ -122,23 +122,23 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});*/
 		
 		$polyButton.on("click", function(){
-			$(document).trigger("toolbar_changeOperationMode","POLY");
+			changeCanvasMode("POLY");
 		});
 		
 		$rectButton.on("click", function(){
-			$(document).trigger("toolbar_changeOperationMode", "RECT");
+			changeCanvasMode("RECT");
 		});
 		
 		$circleButton.on("click", function(){
-			$(document).trigger("toolbar_changeOperationMode", "CIRC");
+			changeCanvasMode("CIRC");
 		});
 		
 		$editButton.on("click", function(){
-			$(document).trigger("toolbar_changeOperationMode", "EDIT");
+			changeCanvasMode("EDIT");
 		});
 		
 		$annotateButton.on("click", function(){
-			$(document).trigger("toolbar_changeOperationMode", "ANNO");
+			changeCanvasMode("ANNO");
 		});
 		
 		$newUndoButton.on("click", function(){
@@ -406,6 +406,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	};
 	
 	var changeCanvasMode = function (mode) {
+		$(document).trigger("toolbar_changeOperationMode", [self.MODE]);
+		// prevMode = mode;
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
 		toolbarModeInit();
