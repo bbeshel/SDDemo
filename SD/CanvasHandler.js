@@ -533,9 +533,7 @@
 			});
 			
 			$(document).on("handler_changeLineColor", function(e, data){
-				console.log(data);
 				changeLineColor(data);
-				console.log(CONFIGS.anno.strokeStyle);
 			});
 			
 			//Calls to save the changes made in edit mode
@@ -1863,6 +1861,10 @@
 				case "blue":
 					CONFIGS.anno.strokeStyle = "blue";
 					break;
+					
+				/*case "purple":
+					CONFIGS.anno.strokeStyle = "purple";
+					break;*/
 					
 				case  "white":
 					CONFIGS.anno.strokeStyle = "white";

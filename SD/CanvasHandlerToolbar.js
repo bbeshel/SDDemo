@@ -20,7 +20,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var annoItemList = [];
 	
-	var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem permanent'></select>");
+	//var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem permanent'></select>");
 	
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
@@ -32,6 +32,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
+	var $polyButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_star_border_black_24px.svg'/></button>");
+	var $rectButton = $("<button class ='permanent toolbarItem' style='padding: 0px 0px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
+	var $circleButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
+	var $editButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_create_black_24px.svg'/></button>");
+	var $annotateButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_message_black_24px.svg'/></button>");
+	var $newUndoButton = $ ("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
+	
+	var modeChangeButtons = [$polyButton, $rectButton, $circleButton, $editButton, $annotateButton, $newUndoButton];
+	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
 	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");	
@@ -41,16 +50,17 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $lineWidthLabel = $("<p class = 'permanent' style='text-align:center;'>Line Width</p>");
 	
 	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
-	var $redColorButton = $("<button    class = 'permanent redColorButton'>Red</button>");
-	var $yellowColorButton = $("<button class = 'permanent yellowColorButton'>Yellow</button>");
-	var $greenColorButton = $("<button  class = 'permanent greenColorButton'>Green</button>");
-	var $blueColorButton = $("<button   class =' permanent blueColorButton'>Blue</button>");
-	var $whiteColorButton = $("<button  class = 'permanent whiteColorButton'>White</button>");
-	var $blackColorButton = $("<button  class = 'permanent blackColorButton'>Black</button>");
+	var $redColorButton = $("<button    class = 'permanent redColorButton' style= 'padding: 2px 9px';>Red</button>");
+	var $yellowColorButton = $("<button class = 'permanent yellowColorButton' style= 'padding: 2px 9px';>Yellow</button>");
+	var $greenColorButton = $("<button  class = 'permanent greenColorButton' style= 'padding: 2px 9px';>Green</button>");
+	var $blueColorButton = $("<button   class =' permanent blueColorButton' style= 'padding: 2px 9px';>Blue</button>");
+	//var $purpleColorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
+	var $whiteColorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
+	var $blackColorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
 	
-	var $undoButton = $("<button id='undoButton' class='toolbarItem permanent'>Undo Draw</button>");
+	//var $undoButton = $("<button id='undoButton' class='toolbarItem permanent'>Undo Draw</button>");
 	
-	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, $whiteColorButton, $blackColorButton];
+	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, /*$purpleColorButton,*/ $whiteColorButton, $blackColorButton];
 	
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
@@ -62,7 +72,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		prevMode = self.MODE;
-		for (var n in chandlerParent.MODES) {
+		/*for (var n in chandlerParent.MODES) {
 			var $op = $(
 				"<option value='" + chandlerParent.MODES[n] + "'>" 
 				+ chandlerParent.MODE_NAMES[n] + "</option>"
@@ -70,7 +80,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			
 			$opModeSelector.append($op);
 			
-		}
+		}*/
 		
 		
 		
@@ -78,16 +88,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		
 		// $toolDiv.append($buttonEdit);
-		$toolDiv.append($opModeSelector);
-		$toolDiv.append($snapZoneLabel);
-		$toolDiv.append($snapZoneSlider);
-		$toolDiv.append($lineWidthLabel);
-		$toolDiv.append($lineWidthSlider);
-		$toolDiv.append($undoButton);
+		//$toolDiv.append($opModeSelector);
+		for (n in modeChangeButtons){
+			$toolDiv.append(modeChangeButtons[n]);
+		};
+		//$toolDiv.append($undoButton);
 		//TODO: the text only mode doesnt work, readd when fixed
 		// $toolDiv.append($debugViewCheckbox);
 		$debugViewCheckbox.prop('checked', true);
 		$toolDiv.append($jsonContainer);
+		$toolDiv.append($snapZoneLabel);
+		$toolDiv.append($snapZoneSlider);
+		$toolDiv.append($lineWidthLabel);
+		$toolDiv.append($lineWidthSlider);
 		$toolDiv.append($lineColorLabel);
 		for (n in colorButtonList){
 			$toolDiv.append(colorButtonList[n]);
@@ -95,10 +108,34 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		}
 		// $toolDiv.append($saveEditChanges);
 		
-		$opModeSelector.on("change", function () {
+		/*$opModeSelector.on("change", function () {
 			$(document).trigger("toolbar_changeOperationMode", [$opModeSelector.val()]);
 			prevMode = $opModeSelector.val();
 			// changeCanvasMode($opModeSelector.val());
+		});*/
+		
+		$polyButton.on("click", function(){
+			$(document).trigger("toolbar_changeOperationMode","POLY");
+		});
+		
+		$rectButton.on("click", function(){
+			$(document).trigger("toolbar_changeOperationMode", "RECT");
+		});
+		
+		$circleButton.on("click", function(){
+			$(document).trigger("toolbar_changeOperationMode", "CIRC");
+		});
+		
+		$editButton.on("click", function(){
+			$(document).trigger("toolbar_changeOperationMode", "EDIT");
+		});
+		
+		$annotateButton.on("click", function(){
+			$(document).trigger("toolbar_changeOperationMode", "ANNO");
+		});
+		
+		$newUndoButton.on("click", function(){
+			$(document).trigger("handler_execUndo");
 		});
 		
 		$snapZoneSlider.on("change", function () {
@@ -128,6 +165,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$(document).trigger("handler_changeLineColor", "blue");
 		});
 		
+		/*$purpleColorButton.on("click", function(){
+			$(document).trigger("handler_changeLineColor", "purple");
+		});*/
+		
 		$whiteColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "white");
 		});
@@ -140,9 +181,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$(document).trigger("handler_saveEditChanges");
 		});
 		
-		$undoButton.on("click", function () {
+		/*$undoButton.on("click", function () {
 			$(document).trigger("handler_execUndo");
-		});
+		});*/
 		
 		$debugViewCheckbox.on("change", function () {
 			if ($debugViewCheckbox.is(":checked")) {
