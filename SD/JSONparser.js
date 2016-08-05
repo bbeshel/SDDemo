@@ -143,7 +143,7 @@
 			var doSearch = function (ob, str) {
 			
 				
-				if (ob.hasOwnProperty("chars")) {
+				if (ob.hasOwnProperty("chars") && ob["@type"] !== "oa:SvgSelector") {
 					str["chars"] = ob["chars"];
 				}
 				if (ob.hasOwnProperty("cnt:chars")) {

@@ -665,12 +665,13 @@
 			
 			//Generic document mousedown catch and handler
 			$(document).on("mousedown", function (e) {
-				isMouseDown = true;
+				setTimeout(function () {isMouseDown = true;}, 10);
 			});
 			
 			//Generic document mouseup catch and handler
 			$(document).on("mouseup", function (e) {
-				isMouseDown = false;
+				setTimeout(function () {isMouseDown = false;}, 10);
+				console.log("mup");
 			});
 
 			//TODO: make sure we dont call a function that doesnt exist!
@@ -678,6 +679,7 @@
 			$(document).keydown(function (e) {
 				switch(e.which) {
 					case 32: //space
+						e.preventDefault();
 						tool[tool.MODE].space(e);
 					break;
 					case 13: //enter
@@ -1938,10 +1940,8 @@
 				if (!skipPath) {
 					var currentLineWidth = CONFIGS.anno.lineWidth;
 					var currentStrokeStyle = CONFIGS.anno.strokeStyle;
-					console.log(CONFIGS.anno.strokeStyle);
 					//CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
 					//CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
-					console.log(CONFIGS.anno.strokeStyle);
 					drawPath(completedPaths[i]);
 					//CONFIGS.anno.lineWidth = currentLineWidth;
 					//CONFIGS.anno.strokeStyle = currentStrokeStyle;
@@ -2080,12 +2080,16 @@
 		};
 		
 		tool.EDIT.mousemove = function (e) {
-			console.log(isAnchorSelected);
-			console.log(prevmPos);
+			// console.log(isAnchorSelected);
+			// console.log(prevmPos);
 			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
-			console.log(md);
+			if (md.x === 0 && md.y === 0) {
+				console.log("prevented mousemove");
+			}
+			// console.log(md);
+			// console.log(isMouseDown);
 			if (isMouseDown && isInSelectedAnno && !isAnchorSelected) {
-				console.log("updateing shape");
+				console.trace("updateing shape");
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedPath(md);

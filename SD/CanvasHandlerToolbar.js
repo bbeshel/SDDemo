@@ -219,16 +219,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				
 				var hts = "";
 				if (comments["label"] != null) {
-					hts += "LABEL" + comments["label"];
+					hts += "LABEL: " + comments["label"];
 					hts += "\n";
 				}
 				if (comments["cnt:chars"] != null) {
-					hts += "CNT:CHARS" + comments["cnt:chars"];
+					hts += "CNT:CHARS: " + comments["cnt:chars"];
 					hts += "\n";
 				}
 				if (comments["chars"] != null) {
-					hts += "CHARS" + comments["chars"];
+					hts += "CHARS: " + comments["chars"];
 					hts += "\n";
+				}
+				if (hts.length < 1) {
+					hts = "(No text)";
 				}
 				div.html(hts);
 				div.path = annos[i];
