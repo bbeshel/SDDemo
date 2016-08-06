@@ -358,7 +358,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					div.html(hts);
 					div.editable = comments;
 					div.path = annos[i];
-					setupAnnoEvents(div);
+					// setupAnnoEvents(div);
 					if (i < annoItemList.length) {
 						annoItemList[i].editable = comments;
 						annoItemList[i].path = annos[i];
@@ -367,8 +367,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 						annoItemList.push(div);
 						$jsonContainer.append(div);
 					}
+				} else if (annos[i].markedForDelete) {
+					annoItemList[i].remove();
+					annoItemList.splice(i, 1);
 				}
 			}
+		}
+		
+		for (var i = 0; i < annoItemList.length; i++) {
+			setupAnnoEvents(annoItemList[i]);
 		}
 	};
 	

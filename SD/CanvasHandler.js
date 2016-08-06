@@ -167,6 +167,7 @@
 				console.log(CONFIGS.newAnnotationList);
 				console.log(completedPaths);
 				console.log("UPDATE PROCEDURE COMPLETE!!");
+				removeMarkedDeletedPaths();
 			},
 			curIndex : -1
 		};
@@ -230,6 +231,8 @@
 		var ajaxWaitState = false;
 		
 		var ajaxRequestQueue = [];
+		
+		var annoDeleteQueue = [];
 				
 		//Universal canvas mouse position
 		var mPos;
@@ -311,6 +314,7 @@
 			JSON: null,
 			needsUpdate: false,
 			needsLocalUpdate: false,
+			markedForDelete: false,
 			strokeStyle: "black",
 			lineWidth: 1,
 			push: function (px, py) {
@@ -343,6 +347,7 @@
 				this.JSON = null;
 				this.needsUpdate = false;
 				this.needsLocalUpdate = false;
+				this.markedForDelete = false;
 			},
 			updateBounds: function (px, py) {
 				this.leftmost = px < this.leftmost ? px : this.leftmost;
@@ -729,6 +734,12 @@
 					break;
 					case 13: //enter
 						tool[tool.MODE].enter(e);
+					break;
+					case 46:
+						tool[tool.MODE].del(e);
+					break;
+					default:
+					
 				}
 			});
 			
@@ -1279,7 +1290,17 @@
 						// console.log(errorThrown);
 					// });
 					// CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
+				} else if (completedPaths[i].markedForDelete) {
+					params = JSON.stringify({ "@id" : completedPaths[i].annoId });
+					posturl = "http://165.134.241.141:80/annotationstore/anno/deleteAnnotationByAtID.action?content=" + encodeURIComponent(params);
+					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
+			}
+			
+			for (var i = 0; i < annoDeleteQueue.length; i++) {
+				params = JSON.stringify({ "@id" : annoDeleteQueue[i] });
+				posturl = "http://165.134.241.141:80/annotationstore/anno/deleteAnnotationByAtID.action?content=" + encodeURIComponent(params);
+				ajaxRequestQueue.push({ url : posturl});
 			}
 			
 			if (ajaxRequestQueue.length > 0) {
@@ -1323,7 +1344,7 @@
 			//push all new annotations to the first anno list if it exists, otherwise make a new anno list
 			//TODO: maybe push this to its own function before updating anno lists
 			for (var i = 0; i < completedPaths.length; i++) {
-				if (completedPaths[i].annoIndex === -1) {
+				if (completedPaths[i].annoListIndex === -1) {
 					if (CONFIGS.annotationLists.length > 0) {
 						completedPaths[i].annoIndex = CONFIGS.annotationLists[0]["resources"].length;
 						completedPaths[i].annoListIndex = 0;
@@ -1331,9 +1352,16 @@
 						anoPointer["@id"] = completedPaths[i].annoId;
 						CONFIGS.annotationLists[0]["resources"].push(anoPointer);
 					} 
+				} else if (completedPaths[i].markedForDelete && completedPaths[i].annoListIndex === curAnoListIndex) {
+					//TODO: loop here to find the id and remove it
+					for (var j = 0; j < CONFIGS.annotationLists[curAnoListIndex]["resources"].length; j++) {
+						if (completedPaths[i].annoId === CONFIGS.annotationLists["resources"][j]["@id"]) {
+							CONFIGS.annotationLists[curAnoListIndex]["resources"].splice(j, 1);
+						}
+					}
 				}
 			}
-			
+			//TODO: if delete, maybe need to save anno list as new?
 			
 			
 			
@@ -1529,6 +1557,14 @@
 				}
 			}
 		};
+		
+	var removeMarkedDeletedPaths = function () {
+		for (var i = completedPaths.length - 1; i > -1; i--) {
+			if (completedPaths[i].markedForDelete) {
+				completedPaths.splice(i, 1);
+			}
+		}
+	};
 		
 		var convertToAdjustedDimensions = function (ar) {
 			for (var i = 0; i < ar.length; i++) {
@@ -1879,6 +1915,13 @@
 				completedPaths[curInd] = p;
 				// CONFIGS.anno.lineWidth = selectedPaths[i].lineWidth;
 				// CONFIGS.anno.strokeStyle = selectedPaths[i].strokeStyle;
+			}
+		};
+		
+		var removeFromCompletedPaths = function (ind) {
+			if (completedPaths[ind].annoId != null) {
+				annoDeleteQueue.push(completedPaths[ind].annoId);
+				completedPaths.splice(ind, 1);
 			}
 		};
 		
@@ -2301,6 +2344,40 @@
 		
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
+		};
+		
+		tool.EDIT.del = function (e) {
+			if (confirm("Are you sure you want to delete the selected annotation?")) {
+				if (selectedPaths.length === 0) {
+					return;
+				}
+				//need to keep the anoId so updateProcedure can find and delete it
+				var anoId = selectedPaths[selectedPathsCurIndex].path.annoId;
+				var anoListIndex = selectedPaths[selectedPathsCurIndex].path.annoListIndex;
+				selectedPaths[selectedPathsCurIndex].path.clear();
+				selectedPaths[selectedPathsCurIndex].path.markedForDelete = true;
+				selectedPaths[selectedPathsCurIndex].path.annoId = anoId;
+				selectedPaths[selectedPathsCurIndex].path.annoListIndex = anoListIndex;
+				
+				updateCompletedPaths();
+				
+				$(document).trigger("handler_canvasIntClear");
+				redrawCompletedPaths();
+				$(document).trigger("toolbar_updateAnnotationData");
+				
+				removeFromCompletedPaths(selectedPaths[selectedPathsCurIndex].compIndex);
+				
+				selectedPathsCurIndex = 0;
+				selectedPathsAnchorIndex = null;
+				selectedPaths = [];
+				isInSelectedAnno = false;
+				isEditingPath = false;
+				isAnchorSelected = false;
+				isShapeMoved = false;
+			} else {
+				return;
+			}
+			
 		};
 		
 		tool.EDIT.reset = function () {
