@@ -2307,7 +2307,11 @@
 		tool.EDIT.mousemove = function (e) {
 			// console.log(isAnchorSelected);
 			// console.log(prevmPos);
-			var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+			if (prevmPos != null && prevmPos.x != null && prevmPos.y != null) {
+				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+			} else {
+				md = mPos;
+			}
 			if (md.x === 0 && md.y === 0) {
 				console.log("prevented mousemove");
 			}

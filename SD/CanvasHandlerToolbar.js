@@ -548,7 +548,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		var elPos = div.position().top;
 		$jsonContainer.animate({
 			scrollTop: pos + elPos - 500
-		});
+		}, 10);
 		console.log(div.position().top);
 	};
 	
