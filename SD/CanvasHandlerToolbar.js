@@ -457,15 +457,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	
 	var changeSaveStatus = function(unsavedChange) {
-		console.log(unsavedChange);
-		saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+		$toolDiv.detach($saveStatusImage);
+		console.log("Checkpoint");
 		if (unsavedChange == false){
 			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 		}
 		else{
 			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
 		}
-		/*toolbar.detach("saveStatusImage");*/
 		toolbarAppend(saveStatusImage);
 	};
 	
