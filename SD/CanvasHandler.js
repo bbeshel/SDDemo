@@ -1968,8 +1968,8 @@
 		var removeFromCompletedPaths = function (ind) {
 			if (completedPaths[ind].annoId != null) {
 				annoDeleteQueue.push(completedPaths[ind].annoId);
-				completedPaths.splice(ind, 1);
 			}
+			completedPaths.splice(ind, 1);
 		};
 		
 		//Updates a single anchor in selectedPaths

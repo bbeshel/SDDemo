@@ -289,34 +289,36 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			}
 		} else {
 			for (var i = 0; i < annos.length; i++) {
-				div = $(jsonItemString);
-				var x = annos[i].JSON;
-				x = x.replace(/\\"/g, '"');
-				var comments = parser.getAssociatedAnnoText(annos[i].JSON);
-				console.log(comments);
-				
-				var hts = "";
-				if (comments["label"] != null) {
-					hts += "LABEL: " + comments["label"];
-					hts += "\n";
+				if (annos[i].JSON != null && annos[i].needsUpdate) {
+					div = $(jsonItemString);
+					var x = annos[i].JSON;
+					x = x.replace(/\\"/g, '"');
+					var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+					console.log(comments);
+					
+					var hts = "";
+					if (comments["label"] != null) {
+						hts += "LABEL: " + comments["label"];
+						hts += "\n";
+					}
+					if (comments["cnt:chars"] != null) {
+						hts += "CNT:CHARS: " + comments["cnt:chars"];
+						hts += "\n";
+					}
+					if (comments["chars"] != null) {
+						hts += "CHARS: " + comments["chars"];
+						hts += "\n";
+					}
+					if (hts.length < 1) {
+						hts = "(No text)";
+					}
+					div.html(hts);
+					div.editable = comments;
+					div.path = annos[i];
+					setupAnnoEvents(div);
+					annoItemList.push(div);
+					$jsonContainer.append(div);
 				}
-				if (comments["cnt:chars"] != null) {
-					hts += "CNT:CHARS: " + comments["cnt:chars"];
-					hts += "\n";
-				}
-				if (comments["chars"] != null) {
-					hts += "CHARS: " + comments["chars"];
-					hts += "\n";
-				}
-				if (hts.length < 1) {
-					hts = "(No text)";
-				}
-				div.html(hts);
-				div.editable = comments;
-				div.path = annos[i];
-				setupAnnoEvents(div);
-				annoItemList.push(div);
-				$jsonContainer.append(div);
 			}
 		}
 	};
@@ -393,7 +395,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 						annoItemList.push(div);
 						$jsonContainer.append(div);
 					}
-				} else if (annos[i].markedForDelete) {
+				}
+//				else if (annos[i].markedForDelete) {
+					// annoItemList[i].remove();
+					// annoItemList.splice(i, 1);
+				// }
+			}
+			for (var i = 0; i < annos.length; i++) {
+				if (annos[i].markedForDelete) {
 					annoItemList[i].remove();
 					annoItemList.splice(i, 1);
 				}
