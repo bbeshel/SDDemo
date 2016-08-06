@@ -168,6 +168,8 @@
 				console.log(completedPaths);
 				console.log("UPDATE PROCEDURE COMPLETE!!");
 				removeMarkedDeletedPaths();
+				$(document).trigger("toolbar_saveChangesComplete");
+				$(document).trigger("handler_enableUserInteraction");
 			},
 			curIndex : -1
 		};
@@ -225,6 +227,8 @@
 
 		//Bool to tell if the shape being edited has already been moved
 		var isShapeMoved = false;
+		
+		var userInteractionDisabled = false;
 		
 		var canvasDimensionsChecks = 0;
 		
@@ -698,6 +702,14 @@
 				completedPaths[ind].needsUpdate = true;
 			}); 
 			
+			$(document).on("handler_preventUserInteraction", function () {
+				userInteractionDisabled = true;
+			});
+			
+			$(document).on("handler_enableUserInteraction" , function () {
+				userInteractionDisabled = false;
+			});
+			
 			
 			//Generic document mousemove catch and handler
 			$(document).on("mousemove", function (e) {
@@ -711,6 +723,9 @@
 			
 			//Generic document click catch and handler
 			$(document).on("click", function (e) {
+				if (userInteractionDisabled) {
+					return;
+				}
 				if (!mPos) { 
 					return; 
 				}
@@ -734,6 +749,9 @@
 			//TODO: make sure we dont call a function that doesnt exist!
 			//Dynamic document keydown catch and handler
 			$(document).keydown(function (e) {
+				if (userInteractionDisabled) {
+					return;
+				}
 				switch(e.which) {
 					case 9: //space
 						e.preventDefault();
