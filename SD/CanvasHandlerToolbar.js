@@ -40,7 +40,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $annoButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_message_black_24px.svg'/></button>");
 	var $newUndoButton = $ ("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
-	var $saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
+	var $saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
@@ -89,7 +89,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		
 		$parent.append($toolDiv);
-		$parent.append($saveStatusImage);
+		$toolDiv.append($saveStatusImage);
 		
 		
 		// $toolDiv.append($buttonEdit);
@@ -413,7 +413,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		toolbarClear();
 		switch (self.MODE) {
 			case "POLY":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($snapZoneLabel);
 				toolbarAppend($snapZoneSlider);
 				toolbarAppend($lineWidthLabel);
@@ -423,11 +422,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "EDIT":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($saveEditChanges);
 				break;
 			case "RECT":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
@@ -435,7 +432,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "CIRC":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
@@ -459,14 +455,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var changeSaveStatus = function(unsavedChange) {
 		console.log(unsavedChange);
 		saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
-		if (unsavedChange == false){
-			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
+		if (!unsavedChange){
+			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 		}
 		else{
-			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
 		}
-		/*toolbar.detach("saveStatusImage");*/
-		toolbarAppend(saveStatusImage);
+		$("#saveStatusImage").remove();
+		$toolDiv.prepend(saveStatusImage);
 	};
 	
 	var setupAnnoEvents = function (div) {
