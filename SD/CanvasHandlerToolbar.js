@@ -40,7 +40,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
 	//var $newUndoButton = $ ("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
-	var $saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
+	var $saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
@@ -73,6 +73,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $canvasIdExpose = $('<textarea readonly class="toolbarItem permanent">!No ID!</textarea>');
 	
+	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
+	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		prevMode = self.MODE;
@@ -86,10 +88,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			
 		}*/
 		
-		
+		$("body").append($saveModal);
 		
 		$parent.append($toolDiv);
-		$parent.append($saveStatusImage);
+		$toolDiv.append($saveStatusImage);
 		
 		
 		// $toolDiv.append($buttonEdit);
@@ -245,6 +247,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$(document).on("toolbar_changeSaveStatus", function(e, unsavedChanges) {
 			changeSaveStatus(unsavedChanges);
+		});
+		
+		$(document).on("toolbar_saveChangesComplete", function () {
+			$saveModal.removeClass("modal-active");
 		});
 		
 	};
@@ -413,7 +419,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		toolbarClear();
 		switch (self.MODE) {
 			case "POLY":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($snapZoneLabel);
 				toolbarAppend($snapZoneSlider);
 				toolbarAppend($lineWidthLabel);
@@ -423,11 +428,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "EDIT":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($saveEditChanges);
 				break;
 			case "RECT":
-				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
@@ -457,15 +460,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	
 	var changeSaveStatus = function(unsavedChange) {
-		$toolDiv.detach($saveStatusImage);
-		console.log("Checkpoint");
-		if (unsavedChange == false){
-			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
+		//$toolDiv.detach($saveStatusImage);
+		//console.log("Checkpoint");
+		if (!unsavedChange){
+			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 		}
 		else{
-			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
 		}
-		toolbarAppend(saveStatusImage);
+		$("#saveStatusImage").remove();
+		$toolDiv.prepend(saveStatusImage);
 	};
 	
 	var setupAnnoEvents = function (div) {
@@ -477,7 +481,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	};
 	
 	var setupAnnoCharEdit = function (div) {
-		var $textDiv = $("<div id='annoCharsBox' class='toolbarItem'></div>");
+		var $textDivContainer = $("<div id='annoCharsBox' class='toolbarItem'></div>");
+		var $labelDiv = $("<div class='toolbarItem annoCharsBoxContainer'></div>");
+		var $textDiv = $("<div class='toolbarItem annoCharsBoxContainer'></div>");
 		var isChars = false;
 		for (var n in div.editable) {
 			if (div.editable[n] != null) {
@@ -488,19 +494,22 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, n, $textBox.val()]);
 					updateJSONDisplay();
 				});
-				$textDiv.append($textBoxLabel);
+				$labelDiv.append($textBoxLabel);
 				$textDiv.append($textBox);
 				
 			} else {
 				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
 				var $textBox = $("<textarea readonly placeholder='NO LABEL: CANNOT EDIT' class='toolbarAnnoTextItem'></textarea>");
-				$textDiv.append($textBoxLabel);
+				$labelDiv.append($textBoxLabel);
 				$textDiv.append($textBox);
 			}
 		}
-		if (isChars) {
-			$toolDiv.append($textDiv);
-		}
+		$textDivContainer.append($labelDiv);
+		$textDivContainer.append($textDiv);
+		$toolDiv.append($textDivContainer);
+		// if (isChars) {
+			// $toolDiv.append($textDiv);
+		// }
 	};
 	
 	var annoItemsDeHighlight = function () {
@@ -522,6 +531,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	self.setDummyState = function () {
 		$exportData.on("click", function () {
 			$(document).trigger("handler_exportAllDataJSON");
+			$saveModal.addClass("modal-active");
+			$(document).trigger("handler_preventUserInteraction");
 		});
 		
 		$toolDiv.append($exportData);
