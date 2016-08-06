@@ -100,6 +100,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		// $toolDiv.append($buttonEdit);
 		//$toolDiv.append($opModeSelector);
+		$polyButton.addClass("modeButtonPressed");
 		$modeDiv.append($polyButton);
 		$modeDiv.append($rectButton);
 		//$modeDiv.append($circButton);
@@ -139,11 +140,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$polyButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
+			$modeDiv.children().removeClass("modeButtonPressed");
+			$polyButton.addClass("modeButtonPressed");
 			changeCanvasMode("POLY");
 		});
 		
 		$rectButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
+			$modeDiv.children().removeClass("modeButtonPressed");
+			$rectButton.addClass("modeButtonPressed");
 			changeCanvasMode("RECT");
 		});
 		
@@ -154,6 +159,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$editButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
+			$modeDiv.children().removeClass("modeButtonPressed");
+			$editButton.addClass("modeButtonPressed");
 			changeCanvasMode("EDIT");
 		});
 		
@@ -476,7 +483,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var changeCanvasMode = function (mode) {
 		$(document).trigger("toolbar_changeOperationMode", [self.MODE]);
-		// prevMode = mode;
+		prevMode = self.MODE;
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
 		toolbarModeInit();
