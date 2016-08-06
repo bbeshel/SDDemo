@@ -33,12 +33,12 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
 	var $modeDiv = $("<div class='permanent toolbarItem'></div>");
-	var $polyButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_star_border_black_24px.svg'/></button>");
-	var $rectButton = $("<button class ='permanent toolbarItem' style='padding: 0px 0px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
-	var $circButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
-	var $editButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_create_black_24px.svg'/></button>");
-	var $annoButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_message_black_24px.svg'/></button>");
-	var $newUndoButton = $ ("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
+	var $polyButton = $("<button class = 'permanent modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
+	var $rectButton = $("<button class ='permanent modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
+	//var $circButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
+	var $editButton = $("<button class = 'permanent modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
+	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
+	//var $newUndoButton = $ ("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
 	var $saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 	
@@ -96,10 +96,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		//$toolDiv.append($opModeSelector);
 		$modeDiv.append($polyButton);
 		$modeDiv.append($rectButton);
-		$modeDiv.append($circButton);
+		//$modeDiv.append($circButton);
 		$modeDiv.append($editButton);
-		$modeDiv.append($annoButton);
-		$modeDiv.append($newUndoButton);
+		//$modeDiv.append($annoButton);
+		//$modeDiv.append($newUndoButton);
 		$toolDiv.append($modeDiv);
 		//$toolDiv.append($undoButton);
 		//TODO: the text only mode doesnt work, readd when fixed
@@ -138,24 +138,24 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			changeCanvasMode("RECT");
 		});
 		
-		$circButton.on("click", function(){
+		/*$circButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("CIRC");
-		});
+		});*/
 		
 		$editButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("EDIT");
 		});
 		
-		$annoButton.on("click", function(){
+		/*$annoButton.on("click", function(){
 			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("ANNO");
-		});
+		});*/
 		
-		$newUndoButton.on("click", function(){
+		/*$newUndoButton.on("click", function(){
 			$(document).trigger("handler_execUndo");
-		});
+		});*/
 		
 		$snapZoneSlider.on("change", function () {
 			// chandlerParent.changeSnapZone($snapZoneSlider.val());
@@ -434,7 +434,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					toolbarAppend(colorButtonList[n]);
 				}
 				break;
-			case "CIRC":
+			/*case "CIRC":
 				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
@@ -443,7 +443,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "ANNO":
-				break;
+				break;*/
 		}
 	};
 	

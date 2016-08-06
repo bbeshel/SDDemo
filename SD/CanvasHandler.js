@@ -168,9 +168,10 @@
 				console.log(completedPaths);
 				console.log("UPDATE PROCEDURE COMPLETE!!");
 				removeMarkedDeletedPaths();
+				unsavedChanges = false;
+				unsavedChangesDisplay();
 			},
-			curIndex : -1
-			unsavedChangesDisplay();
+			curIndex : -1,
 		};
 		
 		var annoListData;
@@ -2094,6 +2095,7 @@
 			isAnchorSelected = false;
 			isShapeMoved = false;
 			unsavedChanges = false;
+			unsavedChangesDisplay();
 			
 		};
 
@@ -2238,10 +2240,12 @@
 			if (isInSnapZone) {
 				endPath();
 				unsavedChanges = false;
+				unsavedChangesDisplay()
 			} else {
 				addAnchor();
 				continuePath();
 				unsavedChanges = true;
+				unsavedChangesDisplay();
 				//console.log(anchorList);
 			}
 		};
@@ -2313,6 +2317,7 @@
 				}
 				isEditingPath = true;
 				unsavedChanges = true;
+				unsavedChangesDisplay();
 				//console.log(selectedPaths);
 				
 				
@@ -2362,6 +2367,7 @@
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
 			unsavedChanges = false;
+			unsavedChangesDisplay();
 		};
 		
 		tool.EDIT.del = function (e) {
@@ -2401,6 +2407,7 @@
 		tool.EDIT.reset = function () {
 			cancelEditChanges();
 			unsavedChanges = false;
+			unsavedChangesDisplay();
 		};
 		
 		tool.RECT.click = function () {
