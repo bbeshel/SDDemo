@@ -593,7 +593,9 @@
 			
 			//Calls to save the changes made in edit mode
 			$(document).on("handler_saveEditChanges", function (e) {
-				saveEditChanges();
+				if (tool.MODE === "EDIT") {
+					tool[tool.MODE].enter(e);
+				}
 			});
 			
 			$(document).on("handler_resetAnnoUpdateStatus", function () {
@@ -710,6 +712,18 @@
 			
 			$(document).on("handler_enableUserInteraction" , function () {
 				userInteractionDisabled = false;
+			});
+			
+			$(document).on("handler_deleteAnnotation", function (e) {
+				if (tool.MODE === "EDIT") {
+					tool.EDIT.del(e);
+				}
+			});
+			
+			$(document).on("handler_cycleAnnotation", function (e) {
+				if (tool.MODE === "EDIT") {
+					tool.EDIT.tab(e);
+				}
 			});
 			
 			
@@ -2378,6 +2392,9 @@
 		
 		tool.EDIT.tab = function (e) {
 			//this will be used to cycle through overlapping shapes...
+			if (selectedPaths.length < 1) {
+				return;
+			}
 			
 			if (!isShapeMoved && !isAnchorSelected) {
 				//do nothing
@@ -2404,10 +2421,11 @@
 		};
 		
 		tool.EDIT.del = function (e) {
+			if (selectedPaths.length === 0) {
+				return;
+			}
 			if (confirm("Are you sure you want to delete the selected annotation?")) {
-				if (selectedPaths.length === 0) {
-					return;
-				}
+				
 				//need to keep the anoId so updateProcedure can find and delete it
 				var anoId = selectedPaths[selectedPathsCurIndex].path.annoId;
 				var anoListIndex = selectedPaths[selectedPathsCurIndex].path.annoListIndex;

@@ -75,6 +75,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
 	
+	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarItem permanent'>Delete selected annotation</button>");
+	
+	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarItem permanent'>Select next annotation</button>");
+	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
 		prevMode = self.MODE;
@@ -118,6 +122,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			console.log(colorButtonList[n]);
 		}
 		$toolDiv.append($canvasIdExpose);
+		$toolDiv.append($deleteAnnoButton);
+		$toolDiv.append($cycleAnnoButton);
+		
 		// $toolDiv.append($saveEditChanges);
 		
 		/*$opModeSelector.on("change", function () {
@@ -214,6 +221,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			}
 		});
 		
+		$deleteAnnoButton.on("click", function () {
+			$(document).trigger("handler_deleteAnnotation");
+		});
+		
+		$cycleAnnoButton.on("click", function () {
+			$(document).trigger("handler_cycleAnnotation");
+		});
+		
 		$(document).on("toolbar_exposeCanvasId", function (e, data) {
 			$canvasIdExpose.html(data);
 		});
@@ -289,7 +304,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			}
 		} else {
 			for (var i = 0; i < annos.length; i++) {
-				if (annos[i].JSON != null && annos[i].needsUpdate) {
+				if (annos[i].JSON != null) {
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
