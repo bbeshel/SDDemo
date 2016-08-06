@@ -2142,8 +2142,6 @@
 			isAnchorSelected = false;
 			isShapeMoved = false;
 			unsavedChanges = false;
-			unsavedChangesDisplay();
-			
 		};
 
 		//Redraw all the shapes that were not edited
@@ -2287,7 +2285,6 @@
 			if (isInSnapZone) {
 				endPath();
 				unsavedChanges = false;
-				unsavedChangesDisplay()
 			} else {
 				addAnchor();
 				continuePath();
@@ -2421,7 +2418,6 @@
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
 			unsavedChanges = false;
-			unsavedChangesDisplay();
 		};
 		
 		tool.EDIT.del = function (e) {
@@ -2462,7 +2458,6 @@
 		tool.EDIT.reset = function () {
 			cancelEditChanges();
 			unsavedChanges = false;
-			unsavedChangesDisplay();
 		};
 		
 		tool.RECT.click = function () {
