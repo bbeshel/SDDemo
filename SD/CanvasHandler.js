@@ -1268,6 +1268,12 @@
 				.fail(function (xhr, status, errorThrown) {
 					console.log(status);
 					console.log(errorThrown);
+					$(document).trigger("toolbar_saveChangesComplete");
+					$(document).trigger("handler_enableUserInteraction");
+					alert("There was a problem updating to the server. Changes have not been saved. "
+						+ "Error status:" + status 
+						+ "Error message:" + errorThrown
+					);
 				});
 			 
 		};
@@ -1647,8 +1653,11 @@
 		
 		//TODO: rename this, or expand for each mode...
 		//Draws the mouse pointer indicator
-		var drawIndicator = function () {
-			
+		var drawIndicator = function (x, y) {
+			if (x == null && y == null) {
+				x = mPos.x;
+				y = mPos.y;
+			}
 			
 			intCx.beginPath();
 			//TODO: make this permanent before calls 
@@ -1656,7 +1665,7 @@
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
 			//TODO: make the radius editable.
-			intCx.arc(mPos.x, mPos.y, 5, 0, 360);
+			intCx.arc(x, y, CONFIGS.snapZone, 0, 360);
 			intCx.stroke();
 			
 		};
@@ -1902,6 +1911,12 @@
 				return;
 			}
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
+			for (var i = 0; i < path.length; i++) {
+				intCx.beginPath();
+				intCx.arc(path.x[i], path.y[i], CONFIGS.snapZone, 0, 360);
+				intCx.stroke();
+			}
+			
 			intCx.beginPath();
 			intCx.moveTo(path.x[0], path.y[0]);
 			for (var i = 1; i < path.length; i++) {
@@ -2218,7 +2233,6 @@
 		
 		tool.POLY.mousemove = function (e) {
 			$(document).trigger("handler_canvasIntClear");
-			drawIndicator();
 			
 			var x, y;
 			//Checks to see if we should force the indicator to a snap point
@@ -2240,6 +2254,7 @@
 				x = mPos.x;
 				y = mPos.y;
 			}
+			drawIndicator(x, y);
 			
 
 			//Draw the line from the previous anchor to mPos/snap point
