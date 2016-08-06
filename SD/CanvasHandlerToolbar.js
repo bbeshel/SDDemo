@@ -465,7 +465,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		else{
 			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
 		}
-		//toolbar.detach("saveStatusImage");
+		/*toolbar.detach("saveStatusImage");*/
 		toolbarAppend(saveStatusImage);
 	};
 	
