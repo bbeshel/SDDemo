@@ -560,7 +560,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});
 		
 		$toolDiv.append($exportData);
-		$toolDiv.append($saveStatusImage);
 	};
 	
 	
