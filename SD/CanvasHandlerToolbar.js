@@ -32,16 +32,18 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
+	var $modeDiv = $("<div class='permanent toolbarItem'></div>");
 	var $polyButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_star_border_black_24px.svg'/></button>");
 	var $rectButton = $("<button class ='permanent toolbarItem' style='padding: 0px 0px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
-	var $circleButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
+	var $circButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
 	var $editButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_create_black_24px.svg'/></button>");
-	var $annotateButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_message_black_24px.svg'/></button>");
+	var $annoButton = $("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_message_black_24px.svg'/></button>");
 	var $newUndoButton = $ ("<button class = 'permanent toolbarItem' style='padding: 0px 0px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
-	var modeChangeButtons = [$polyButton, $rectButton, $circleButton, $editButton, $annotateButton, $newUndoButton];
+	var $saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 	
 	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
+	
 	
 	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");	
 	var $snapZoneLabel = $("<p class = 'permament' style='text-align:center;'>Snap Zone</p>");
@@ -87,13 +89,18 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		
 		$parent.append($toolDiv);
+		$parent.append($saveStatusImage);
 		
 		
 		// $toolDiv.append($buttonEdit);
 		//$toolDiv.append($opModeSelector);
-		for (n in modeChangeButtons){
-			$toolDiv.append(modeChangeButtons[n]);
-		};
+		$modeDiv.append($polyButton);
+		$modeDiv.append($rectButton);
+		$modeDiv.append($circButton);
+		$modeDiv.append($editButton);
+		$modeDiv.append($annoButton);
+		$modeDiv.append($newUndoButton);
+		$toolDiv.append($modeDiv);
 		//$toolDiv.append($undoButton);
 		//TODO: the text only mode doesnt work, readd when fixed
 		// $toolDiv.append($debugViewCheckbox);
@@ -122,22 +129,27 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});*/
 		
 		$polyButton.on("click", function(){
+			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("POLY");
 		});
 		
 		$rectButton.on("click", function(){
+			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("RECT");
 		});
 		
-		$circleButton.on("click", function(){
+		$circButton.on("click", function(){
+			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("CIRC");
 		});
 		
 		$editButton.on("click", function(){
+			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("EDIT");
 		});
 		
-		$annotateButton.on("click", function(){
+		$annoButton.on("click", function(){
+			$(document).trigger("handler_changeSaveStatus");
 			changeCanvasMode("ANNO");
 		});
 		
@@ -206,7 +218,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		
 		
-		// $(document).on("toolbar_changeOperationMode", function (e, data) {
+		 //$(document).on("toolbar_changeOperationMode", function (e, data) {
 			// changeCanvasMode(data);
 		// });
 		
@@ -225,6 +237,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$(document).on("toolbar_annoItemsDeHighlight", function () {
 			annoItemsDeHighlight();
+		});
+
+		$(document).on("toolbar_getSaveStatus", function(){
+			return getSaveStatus;
+		});
+		
+		$(document).on("toolbar_changeSaveStatus", function(e, unsavedChanges) {
+			changeSaveStatus(unsavedChanges);
 		});
 		
 	};
@@ -393,6 +413,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		toolbarClear();
 		switch (self.MODE) {
 			case "POLY":
+				toolbarAppend($saveStatusImage);
 				toolbarAppend($snapZoneLabel);
 				toolbarAppend($snapZoneSlider);
 				toolbarAppend($lineWidthLabel);
@@ -402,9 +423,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "EDIT":
+				toolbarAppend($saveStatusImage);
 				toolbarAppend($saveEditChanges);
 				break;
 			case "RECT":
+				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
@@ -412,6 +435,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 				break;
 			case "CIRC":
+				toolbarAppend($saveStatusImage);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
 				for (n in colorButtonList){
@@ -429,6 +453,20 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
 		toolbarModeInit();
+	};
+	
+	
+	var changeSaveStatus = function(unsavedChange) {
+		console.log(unsavedChange);
+		saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+		if (unsavedChange == false){
+			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
+		}
+		else{
+			saveStatusImage = $("<div id = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+		}
+		//toolbar.detach("saveStatusImage");
+		toolbarAppend(saveStatusImage);
 	};
 	
 	var setupAnnoEvents = function (div) {
@@ -488,6 +526,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});
 		
 		$toolDiv.append($exportData);
+		$toolDiv.append($saveStatusImage);
 	};
 	
 	

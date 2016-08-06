@@ -207,6 +207,8 @@
 		//Bool for checking if the mouse is near an anchor. Based on CONFIGS.snapZone
 		var isInSnapZone = false;
 		
+		var unsavedChanges = false;
+		
 		var mouseTimeout;
 		
 		//Bool for mouse down
@@ -577,6 +579,11 @@
 			$(document).on("handler_changeLineColor", function(e, data){
 				changeLineColor(data);
 			});
+			
+			$(document).on("handler_changeSaveStatus", function() {
+				unsavedChanges = false;
+			});
+			
 			
 			//Calls to save the changes made in edit mode
 			$(document).on("handler_saveEditChanges", function (e) {
@@ -1151,12 +1158,16 @@
 		var pushUndo = function () {
 			
 			if (undoList.length > CONFIGS.undoLimit) {
-				unodList.shift();
+				undoList.shift();
 			}
 			var cPath = $.extend(true, [], completedPaths);
 			undoList.push(cPath);
 			// $(document).trigger("toolbar_updateAnnotationData");
 			console.log(undoList);
+		};
+		
+		var unsavedChangesDisplay = function() {
+			$(document).trigger("toolbar_changeSaveStatus", unsavedChanges);
 		};
 		
 		// var requestAjax = function (jsonType) {
@@ -1540,7 +1551,8 @@
 			completedPaths = prevPaths;
 			$(document).trigger("toolbar_updateAnnotationData");
 			console.log(completedPaths);
-			
+			unsavedChanges = false;
+			unsavedChangesDisplay();
 			redrawCompletedPaths();
 			
 		};
@@ -1881,6 +1893,7 @@
 			
 		//Draws a given path in its entirety
 		var drawPath = function (path) {
+			//unsavedChanges = true;
 			anoCx.strokeStyle = path.strokeStyle;
 			anoCx.lineWidth = path.lineWidth;
 			anoCx.beginPath();
@@ -2066,6 +2079,8 @@
 			isEditingPath = false;
 			isAnchorSelected = false;
 			isShapeMoved = false;
+			unsavedChanges = false;
+			unsavedChangesDisplay();
 			
 			//TODO: update only the associated item in toolbar
 		};
@@ -2079,7 +2094,8 @@
 			isEditingPath = false;
 			isAnchorSelected = false;
 			isShapeMoved = false;
-			
+			unsavedChanges = false;
+			unsavedChangesDisplay();
 			
 		};
 
@@ -2223,9 +2239,13 @@
 		tool.POLY.click = function (e) {
 			if (isInSnapZone) {
 				endPath();
+				unsavedChanges = false;
+				unsavedChangesDisplay();
 			} else {
 				addAnchor();
 				continuePath();
+				unsavedChanges = true;
+				unsavedChangesDisplay();
 				//console.log(anchorList);
 			}
 		};
@@ -2296,6 +2316,8 @@
 					return;
 				}
 				isEditingPath = true;
+				unsavedChanges = true;
+				unsavedChangesDisplay();
 				//console.log(selectedPaths);
 				
 				
@@ -2344,6 +2366,8 @@
 		
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
+			unsavedChanges = false;
+			unsavedChangesDisplay();
 		};
 		
 		tool.EDIT.del = function (e) {
@@ -2382,6 +2406,8 @@
 		
 		tool.EDIT.reset = function () {
 			cancelEditChanges();
+			unsavedChanges = false;
+			unsavedChangesDisplay();
 		};
 		
 		tool.RECT.click = function () {
