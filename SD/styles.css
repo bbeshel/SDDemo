@@ -96,7 +96,7 @@ body {
 	background-color: #555555;
 }
 
-.unsavedStatus{ /*Used for the background of the saveStatusImage to show it is unsaved*/
-   padding: 1px 1px;
-   background-color: #f44336;
+.disabled{ /*For buttons not allowed unless in edit mode.*/
+	opacity: 0.5;
+	cursor: not-allowed;
 }

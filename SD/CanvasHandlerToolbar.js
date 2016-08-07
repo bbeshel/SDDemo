@@ -13,21 +13,22 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		jsonView : false
 	};
 	
-	var prevMode = "";
-		
-	
+	//Keeps track of the current "mode".
 	self.MODE = "";
 	
+	//List of all annotation items.
 	var annoItemList = [];
-	
-	//var $opModeSelector = $("<select id='opModeSelector' class='toolbarItem permanent'></select>");
-	
+		
+	//Displays JSON objects.
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
 	// var jsonItemString = "<div class='toolbarAnnoItem'></div>";
 	// var jsonItemString = "<p class='toolbarAnnoItem'></p>";
+	
+	//Lists all JSON items.
 	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
 	
+	//Element that displays the attributes of JSON objects in the canvas
 	var $jsonContainer = $("<div class='toolbarItem permanent' id='jsonDisplayContainer'></div>");
 	
 	//Div for all elements for the "tools" the user will be using and seeing to help them create annotations.
@@ -48,19 +49,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Button that allows the user to edit previously created annotations.
 	var $editButton = $("<button class = 'permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
 	
-	//Button that allows the user to write comments on a previously created annotation (obsolete: functionality contained in another function).
+	//Button that allows the user to write comments on a previously created annotation (currently not functional).
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
 	
-	//Button that allows the user to undo a previously placed path for an annotation.
+	//Button that allows the user to undo a previously placed path for an annotation (currently not functional).
 	//var $newUndoButton = $ ("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
 	//Image that displays the current save state of the canvas. 
 	//A check indicates the canvas has been saved to the server. 
 	//An "X" indicates there are changes that have not been saved to the server.
 	var $saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
-	
-	//Button that allows the user to change the "mode" of the canavs to "edit" (obsolete: contained within modeDiv).
-	// var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
 	//Slider that controls the "snap zone", the minimal area a path must end at for 
 	//the path to automatically "snap" to the beginning of the pathing of the annotation.
@@ -98,8 +96,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 		
 	
-	//Button that saves changes made to an annotation in "edit mode".
-	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarAnnoTextItem permanent'>Save Changes</button>");
+	//Button that saves changes made to an annotation in "edit mode". Disabled in "POLY" and "RECT" modes, and thus is disabled from the start.
+	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Save Changes</button>");
+	$saveEditChanges.addClass("disabled");
 	
 	//Button that sends the canvas, along with any annotations within, as a JSON object to the server for storing.
 	var $exportData = $("<button id='exportData' class='permanent toolbarItem'>Export as JSON</button>");
@@ -113,10 +112,12 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
 	
 	//Button that allows the user to delete a selected annotation.
-	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarAnnoTextItem permanent'>Delete selected annotation</button>");
+	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Delete selected annotation</button>");
+	$deleteAnnoButton.addClass("disabled");
 	
 	//Button that allows the user to cycle through previously created annotations.
-	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarAnnoTextItem permanent'>Select next annotation</button>");
+	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Select next annotation</button>");
+	$cycleAnnoButton.addClass("disabled");
 	
 	//Displays the link of the canvas ID.
 	var $canvIdLabel = $("<p class = 'permanent' style='text-align:center;'>Canvas ID Link</p>");
@@ -132,15 +133,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	this.init = function ($parent) {
 		//Sets the first mode to "POLY"
 		self.MODE = chandlerParent.MODES[0];
-		prevMode = self.MODE;
 		/*for (var n in chandlerParent.MODES) {
 			var $op = $(
 				"<option value='" + chandlerParent.MODES[n] + "'>" 
 				+ chandlerParent.MODE_NAMES[n] + "</option>"
 			);
-			
-			$opModeSelector.append($op);
-			
 		}*/
 		
 		$("body").append($saveModal);
@@ -190,20 +187,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($canvIdLabel);
 		$toolDiv.append($canvasIdExpose);
-		
-		
-		
-		// $toolDiv.append($saveEditChanges);
-		
-		/*$opModeSelector.on("change", function () {
-			$(document).trigger("toolbar_changeOperationMode", [$opModeSelector.val()]);
-
-			$opModeSelector.on("change", function () {
-			$(document).trigger("toolbar_changeOperationMode", [prevMode]);
-			prevMode = $opModeSelector.val();
-			changeCanvasMode(prevMode);
-			// changeCanvasMode($opModeSelector.val());
-		});*/
+	
 		
 		//Mode button iteractions. Each button will change the mode of the toolbar, 
 		//displaying this by undarkening the previous mode button and darkening the current one.
@@ -211,6 +195,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$polyButton.addClass("modeButtonPressed");
+			$saveEditChanges.addClass("disabled");
+			$deleteAnnoButton.addClass("disabled");
+			$cycleAnnoButton.addClass("disabled");
 			changeCanvasMode("POLY");
 		});
 		
@@ -218,6 +205,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$rectButton.addClass("modeButtonPressed");
+			$saveEditChanges.addClass("disabled");
+			$deleteAnnoButton.addClass("disabled");
+			$cycleAnnoButton.addClass("disabled");
 			changeCanvasMode("RECT");
 		});
 		
@@ -230,6 +220,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$editButton.addClass("modeButtonPressed");
+			$annoButtonDiv.children().removeClass("disabled");
 			changeCanvasMode("EDIT");
 		});
 		
@@ -598,7 +589,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Changes the "mode" of the canvas.
 	var changeCanvasMode = function (mode) {
 		$(document).trigger("toolbar_changeOperationMode", [self.MODE]);
-		prevMode = self.MODE;
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
 		// toolbarModeInit();
@@ -614,7 +604,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		}
 		else{
 			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem' style='background-color: #f44336;'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
-			//$saveStatusImage.addClass("unsavedStatus");
 		}
 		$("#saveStatusImage").remove();
 		$toolDiv.prepend(saveStatusImage);
