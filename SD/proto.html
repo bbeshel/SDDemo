@@ -50,10 +50,10 @@
     <body>
          <div class="hideme instructions">
             <p>
-                The area below accepts a JSON canvas and will render this canvas to the screen.
+                The area below accepts a JSON canvas and will render this canvas to the screen. Use an @id for sc:Canvas or sc:AnnotationList.
             </p>
             <p>
-                Once you have decided what to put into the area, click 'Load Transcription' to have the input created into the transcription interface.  
+                Once you have decided what to put into the area, click 'Load Parsed Canvas Handler' to have the input created into the transcription interface. Alternatively, you can click 'Load Test Canvas Handler' to start a dummy experiment.
             </p>
         </div>
         
@@ -63,7 +63,7 @@
         <button id="loadBtn" class="hideme" onclick="loadCanvas();"> Load Canvas </button> 
         <button id="loadCanvasHandlerTestBtn" class="hideme" onclick="loadTestCanvasHandler();"> Load Test Canvas Handler</button> 
         <button id="loadCanvasHandlerBtn" class="hideme" onclick="loadCanvasHandler();"> Load Parsed Canvas Handler</button> 
-		<p> {
+	<!-- 	<p> {
                 "@id":"http://canvas.org/canvas/1",
                 "@type" : "sc:Canvas",
                 "label" : "100r",
@@ -103,7 +103,7 @@
                 }],
                 "otherContent":[]
             }
-			</p>
+			</p> -->
         <!-- notice we do not use an actual <canvas> element here.  You will need that for SVG to work -->
         <div id="transcriptionCanvas"> 
             <img class="transcriptionImage"/>

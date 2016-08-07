@@ -25,10 +25,8 @@
 		/*Recursive. Parses through an entire JSON, pulling out
 		* important data relevant to the SharedCanvas.
 		* @param canvasObject	JSON object
-		* @param retTextBool	(non-functional) bool if returning specific text
-		* @return retString		string of desired anno comments
 		*/
-		self.basicCheck = function(canvasObject, retTextBool) {
+		self.basicCheck = function(canvasObject) {
 			recurseIter++;
 			
 			//Check if the key is a SharedCanvas
@@ -59,6 +57,7 @@
 				}
 			}
 			
+			//Find if the otherContent field holds an array of URI, instead of array of oa:Annotation s
 			if (canvasObject.hasOwnProperty("otherContent")) {
 				if (Array.isArray(canvasObject["otherContent"])) {
 					if (canvasObject["otherContent"].length > 0) {
@@ -81,52 +80,18 @@
 				}
 			}
 			
+			//Run through the rest of this object or array
 			for (n in canvasObject){
 				//Recurse if it is an object or an array
 				if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
-					console.log(canvasObject);
-					self.basicCheck(canvasObject[n], retTextBool);				
-				} 
-				//Else, handle particular cases if valid value
-				else if (validChecker(canvasObject[n]) === true){
-					//If we are adding and returning annotation comments...
-					if (retTextBool){
-						if (retString == null) {
-							var retString = "";
-						}
-						//Make it lower case to cover more cases
-						var val = n.toLowerCase();
-						if (val === "label" || val === "cnt:chars" || val === "chars") {
-							switch(val) {
-								case "label":
-								retString += "Label: " + canvasObject[n];
-								break;
-								
-								case "cnt:chars":
-								retString += "Text: " + canvasObject[n];
-								break;
-								
-								case "chars":
-								retString += "Chars: " + canvasObject[n];
-								break;
-								default:
-							
-							}
-						}
-					}
-				}
-				else {
-					//Item was blank
-				}
+					self.basicCheck(canvasObject[n]);				
+				} 	
 			}
-			if (retString != null && retString.length > 0) {
-				return retString;
-			}
-			
 			recurseIter--;
-
 		};
 		
+		
+		//Gets the text associated with the raw annotation (used in toolbar)
 		self.getAssociatedAnnoText = function (json, strOb) {
 			if (strOb == null) {
 				strOb = {
@@ -140,6 +105,7 @@
 				json = JSON.parse(json);
 			}
 			
+			//recursive search to find the associated fields commonly holding annotation text
 			var doSearch = function (ob, str) {
 			
 				
@@ -168,6 +134,7 @@
 			
 		};
 		
+		//Currently unused, was used to write all data associated when parsing json.
 		/*Checks to see if the JSON key-value pair are validChecker
 		* @param objectValue	the value to be checked
 		* @return bool	
@@ -203,11 +170,7 @@
 		var canvasParser = function(jsontext){
 			var parsedCanv = JSON.parse(jsontext);
 			var type = parsedCanv["@type"];
-			//TODO: handle character case
 			if (type === "sc:AnnotationList") {
-				// anoListURL = parsedCanv["@id"];
-				// var anno = jQuery.extend(true, {}, parsedCanv);
-				// annoListJSONList.push(anno);
 				$(document).trigger("parser_annoDataRetrieved");
 				self.basicCheck(parsedCanv);
 			} else if (type === "sc:Canvas") {
