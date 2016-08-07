@@ -586,6 +586,10 @@
 				changeLineColor(data);
 			});
 			
+			$(document).on("handler_changeIndicatorColor", function(e, data){
+				changeIndicatorColor(data);
+			});
+			
 			$(document).on("handler_changeSaveStatus", function() {
 				unsavedChanges = false;
 			});
@@ -2057,11 +2061,11 @@
 		};
 		
 		
-		var changeLineColor = function(val) {
+		var changeLineColor = function(lineColor) {
 			if (CONFIGS.feedback.strokeStyle === "black"){
 				CONFIGS.feedback.strokeStyle = "red";
 			}
-			switch(val){
+			switch(color){
 				case "red":
 					CONFIGS.anno.strokeStyle = "red";
 					CONFIGS.feedback.strokeStyle = "black";
@@ -2093,6 +2097,40 @@
 			}
 		};
 		
+		var changeIndicatorColor = function(indicatorColor){
+			console.log("IndicatorCheckpoint");
+			switch(indicatorColor){
+				case "red":
+					CONFIGS.feedback.strokeStyle = "red";
+					break;
+				
+				case "yellow":
+					console.log("Checkpoint yellow");
+					CONFIGS.feedback.strokeStyle = "yellow";
+					break;
+				
+				case "green":
+					CONFIGS.feedback.strokeStyle = "green";
+					break;
+				
+				case "blue":
+					CONFIGS.feedback.strokeStyle = "blue";
+					break;
+					
+				/*case "purple":
+					CONFIGS.feedback.strokeStyle = "purple";
+					break;*/
+					
+				case  "white":
+					CONFIGS.feedback.strokeStyle = "white";
+					break;
+				
+				case "black":
+					CONFIGS.feedback.strokeStyle = "black";
+					break;
+			}
+			
+		};
 		
 		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {

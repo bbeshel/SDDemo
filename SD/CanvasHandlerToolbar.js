@@ -53,19 +53,37 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class=' permanent' type = 'range' min='1' max='8' step='1' value='1'/>");
 	var $lineWidthLabel = $("<p class = 'permanent toolbarAnnoTextItem' style='text-align:center;'>Line Width</p>");
 	
-	var $lineColorLabel = $("<p class = 'permanent' style = 'text-align:center;'>Line Colors</p>");
-	var $redColorButton = $("<button    class = 'permanent redColorButton' style= 'padding: 2px 9px';>Red</button>");
-	var $yellowColorButton = $("<button class = 'permanent yellowColorButton' style= 'padding: 2px 9px';>Yellow</button>");
-	var $greenColorButton = $("<button  class = 'permanent greenColorButton' style= 'padding: 2px 9px';>Green</button>");
-	var $blueColorButton = $("<button   class =' permanent blueColorButton' style= 'padding: 2px 9px';>Blue</button>");
-	//var $purpleColorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
-	var $whiteColorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
-	var $blackColorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
+
+
+	var $lineColorLabel = $("<p class ='permanent' style = 'text-align:center;'>Line Colors</p>");
+	var $indicatorColorLabel = $("<p class = 'permanent' style = 'text-align:center;'>Indicator Colors</p>");
+
+	
+	var $redLineColorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Red</button>");
+	var $redIndicatorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Red</button>");
+	
+	var $yellowLineColorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
+	var $yellowIndicatorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
+	
+	var $greenLineColorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
+	var $greenIndicatorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
+	
+	var $blueLineColorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
+	var $blueIndicatorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
+	
+	//var $purpleLineColorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
+	//var $purpleIndicatorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
+	
+	var $whiteLineColorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
+	var $whiteIndicatorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
+	
+	var $blackLineColorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
+	var $blackIndicatorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
 	
 	//var $undoButton = $("<button id='undoButton' class='toolbarItem permanent'>Undo Draw</button>");
 	
-	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, /*$purpleColorButton,*/ $whiteColorButton, $blackColorButton];
-	
+	var lineColorButtonList = [$redLineColorButton, $yellowLineColorButton, $greenLineColorButton, $blueLineColorButton, /*$purpleLineColorButton,*/ $whiteLineColorButton, $blackLineColorButton];
+	var indicatorButtonList = [$redIndicatorButton, $yellowIndicatorButton, $greenIndicatorButton, $blueIndicatorButton, /*purpleIndicatorButton,*/ $whiteIndicatorButton, $blackIndicatorButton];
 	
 	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarAnnoTextItem permanent'>Save Changes</button>");
 	
@@ -138,9 +156,12 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		
 		$toolDiv.append($lineColorLabel);
-		for (n in colorButtonList){
-			$toolDiv.append(colorButtonList[n]);
-			console.log(colorButtonList[n]);
+		for (n in lineColorButtonList){
+			$toolDiv.append(lineColorButtonList[n]);
+		}
+		$toolDiv.append($indicatorColorLabel);
+		for (n in indicatorButtonList){
+			$toolDiv.append(indicatorButtonList[n]);
 		}
 		//$toolDiv.append($undoButton);
 		//TODO: the text only mode doesnt work, readd when fixed
@@ -210,32 +231,60 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$(document).trigger("handler_changeLineWidth", [val]);
 		});
 		
-		$redColorButton.on("click", function(){
+		$redLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "red");
 		});
 		
-		$yellowColorButton.on("click", function(){
+		$yellowLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "yellow");
 		});
 		
-		$greenColorButton.on("click", function(){
+		$greenLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "green");
 		});
 		
-		$blueColorButton.on("click", function(){
+		$blueLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "blue");
 		});
 		
-		/*$purpleColorButton.on("click", function(){
+		/*$purpleLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "purple");
 		});*/
 		
-		$whiteColorButton.on("click", function(){
+		$whiteLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "white");
 		});
 		
-		$blackColorButton.on("click", function(){
+		$blackLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "black");
+		});
+		
+		$redIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "red");
+		});
+		
+		$yellowIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "yellow");
+		});
+		
+		$greenIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "green");
+		});
+		
+		$blueIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "blue");
+		});
+		
+		/*$purpleIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "purple");
+		});*/
+		
+		$whiteIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "white");
+		});
+		
+		$blackIndicatorButton.on("click", function(){
+			$(document).trigger("handler_changeIndicatorColor", "black");
 		});
 		
 		$saveEditChanges.on("click", function () {
@@ -480,8 +529,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				toolbarAppend($snapZoneSlider);
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
-				for (n in colorButtonList){
-					toolbarAppend(colorButtonList[n]);
+				for (n in lineColorButtonList){
+					toolbarAppend(lineColorButtonList[n]);
+				}
+				for (n in indicatorButtonList){
+					toolbarAppend(indicatorButtonListButtonList[n]);
 				}
 				break;
 			case "EDIT":
@@ -490,8 +542,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			case "RECT":
 				toolbarAppend($lineWidthLabel);
 				toolbarAppend($lineWidthSlider);
-				for (n in colorButtonList){
+				for (n in lineColorButtonList){
 					toolbarAppend(colorButtonList[n]);
+				}
+				for (n in indicatorButtonList){
+					toolbarAppend(indicatorButtonListButtonList[n]);
 				}
 				break;
 			/*case "CIRC":
@@ -523,7 +578,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 		}
 		else{
-			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem' style='background-color: #f44336;'>Save Status:<img src = 'ic_close_black_24px.svg'/></div>");
+			//$saveStatusImage.addClass("unsavedStatus");
 		}
 		$("#saveStatusImage").remove();
 		$toolDiv.prepend(saveStatusImage);
