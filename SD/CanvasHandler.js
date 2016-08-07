@@ -107,7 +107,8 @@
 		var CONFIGS = {
 			anno : {
 				strokeStyle : "black",
-				lineWidth : 1
+				lineWidth : 1,
+				lineCap : "round"
 			},
 			feedback : {
 				strokeStyle : "red",
@@ -132,15 +133,15 @@
 				function () {
 					updateAllAnnotations();
 				},
-				function () {
-					updateLocalAnnotationJSON();
-				},
+				// function () {
+					// updateLocalAnnotationJSON();
+				// },
 				function () {
 					updateAllAnnotationLists();
 				},
-				function () {
-					updateLocalAnnotationListsJSON();
-				},
+				// function () {
+					// updateLocalAnnotationListsJSON();
+				// },
 				function () {
 					updateNewAnnotationList();
 				},
@@ -782,8 +783,11 @@
 					case 13: //enter
 						tool[tool.MODE].enter(e);
 					break;
-					case 46:
+					case 46: //delete
 						tool[tool.MODE].del(e);
+					break;
+					case 27: //esc
+						tool[tool.MODE].reset(e);
 					break;
 					default:
 					
@@ -1698,6 +1702,7 @@
 				console.log(anoCx.lineWidth);
 				console.log(CONFIGS.anno.lineWidth);
 				anoCx.strokeStyle = CONFIGS.anno.strokeStyle;
+				anoCx.lineCap = CONFIGS.anno.lineCap;
 				anoCx.moveTo(
 					anchorList.x[anchorList.length-2], 
 					anchorList.y[anchorList.length-2]
