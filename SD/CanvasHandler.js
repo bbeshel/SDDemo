@@ -1117,8 +1117,6 @@
 			anoCx.lineTo(x, (y + h));
 			anoCx.lineTo(x, y);
 			anoCx.stroke();
-			
-			
 		};
 		
 		var drawSVGAnnotation = function (data) {
@@ -2540,7 +2538,8 @@
 				// anchorList.push(x, y);
 				endPath();
 				console.log(mPos);
-				
+				unsavedChanges = true;
+				unsavedChangesDisplay();
 				$(document).trigger("handler_canvasIntClear");
 				
 			}
