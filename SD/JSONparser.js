@@ -127,8 +127,7 @@
 			};
 			doSearch(json, strOb);
 			
-			console.log(json);
-			console.log(strOb);
+			
 			
 			return strOb;
 			
@@ -191,7 +190,7 @@
 		var resolveCanvasURL = function (url) {
 			recurseIter++;
 			var aThing = $.getJSON(url, function() {
-					alert("JSON data received.");
+				
 				}
 			).done( function() {
 				canvasParser(aThing.responseText);
