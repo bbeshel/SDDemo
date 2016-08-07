@@ -47,6 +47,12 @@
 	height: 25%;
 }
 
+.annoTextArea {
+	width: 31%;
+	margin: 0.1%;
+	text-align: center;
+}
+
 .toolbarAnnoItemSelected {
 	background-color: #AA3333;
 }
@@ -56,10 +62,24 @@
 	table-layout: fixed;
 }
 
+.sliders {
+	width: 90%;
+}
+
+.buttonItem {
+	width: 33%;
+}
+
 .toolbarAnnoTextItem {
 	display: table-cell;
 	text-align: center;
 	width: 32%;
+}
+
+.toolbarColorItem {
+	display: table-cell;
+	text-align: center;
+	width: 16%;
 }
 
 body {

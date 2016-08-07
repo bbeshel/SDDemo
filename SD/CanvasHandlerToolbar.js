@@ -32,14 +32,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Displays JSON objects.
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
-	// var jsonItemString = "<div class='toolbarAnnoItem'></div>";
-	// var jsonItemString = "<p class='toolbarAnnoItem'></p>";
-	
 	//Lists all JSON items.
 	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
 	
-	//Element that displays the attributes of JSON objects in the canvas
-
 	//Tracks previous MODE defined in CanvasHandler
 	var prevMode = "";	
 	
@@ -62,16 +57,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $modeDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
 	
 	//Button that allows the user to create polygonal shaped annotations.
-	var $polyButton = $("<button class = 'permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
+	var $polyButton = $("<button class = 'permanent buttonItem modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
 	
 	//Button that allows the user to create rectalinear shaped annotations.
-	var $rectButton = $("<button class ='permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
+	var $rectButton = $("<button class ='permanent buttonItem modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
 	
 	//Button that allows the user to create circular shaped annotations (currently not functional).
 	//var $circButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
 	
 	//Button that allows the user to edit previously created annotations.
-	var $editButton = $("<button class = 'permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
+	var $editButton = $("<button class = 'permanent buttonItem modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
 	
 	//Button that allows the user to write comments on a previously created annotation (currently not functional).
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
@@ -87,39 +82,41 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Slider that controls the "snap zone", the minimal area a path must end at for 
 	//the path to automatically "snap" to the beginning of the pathing of the annotation.
 	var $snapZoneSliderContainer = $("<span class='toolbarAnnoTextItem'></span>");
-	var $snapZoneSlider = $("<input id='snapZoneSlider' class='permanent' type='range' min='1' max='26' step='5' value='10'/>");	
+	var $snapZoneSlider = $("<input id='snapZoneSlider' class='sliders permanent' type='range' min='1' max='26' step='5' value='10'/>");	
 	var $snapZoneLabel = $("<p class = 'permanent toolbarAnnoTextItem' style='text-align:center;'>Snap Zone</p>");
 	
 	//Slider that controls the width of the path of an annotation when it is being created.
 	var $lineWidthSliderContainer = $("<span class='toolbarAnnoTextItem'></span>");
-	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class=' permanent' type = 'range' min='1' max='8' step='1' value='1'/>");
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='sliders permanent' type = 'range' min='1' max='8' step='1' value='1'/>");
 	var $lineWidthLabel = $("<p class = 'permanent toolbarAnnoTextItem' style='text-align:center;'>Line Width</p>");
 	
 
 	//Buttons that control the color of the path of an annotation when it is being created.
-	var $lineColorLabel = $("<p class ='permanent' style = 'text-align:center;'>Line Colors</p>");
-	var $redLineColorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Red</button>");
-	var $yellowLineColorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
-	var $greenLineColorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
-	var $blueLineColorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
-	var $whiteLineColorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
-	var $blackLineColorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
+	var $lineColorDiv = $("<div ></div>");
+	var $lineColorLabel = $("<p class =    'permanent' style = 'text-align:center;'>Line Colors</p>");
+	var $redLineColorButton = $("<button class =    'toolbarColorItem permanent' style= 'padding: 2px 9px';>Red</button>");
+	var $yellowLineColorButton = $("<button class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Yellow</button>");
+	var $greenLineColorButton = $("<button  class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Green</button>");
+	var $blueLineColorButton = $("<button   class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Blue</button>");
+	var $whiteLineColorButton = $("<button  class = 'toolbarColorItem permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
+	var $blackLineColorButton = $("<button  class = 'toolbarColorItem permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
 	var lineColorButtonList = [$redLineColorButton, $yellowLineColorButton, $greenLineColorButton, $blueLineColorButton, $whiteLineColorButton, $blackLineColorButton];
 
 	//Buttons that control the color of the path that displays where the path of an annotation will be placed if the user clicks their mouse.
-	var $indicatorColorLabel = $("<p class = 'permanent' style = 'text-align:center;'>Indicator Colors</p>");
-	var $redIndicatorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Red</button>");
-	var $yellowIndicatorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
-	var $greenIndicatorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
-	var $blueIndicatorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
-	var $whiteIndicatorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
-	var $blackIndicatorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
+	var $indicatorColorDiv = $("<div ></div>");
+	var $indicatorColorLabel = $("<p class =        ' permanent' style = 'text-align:center;'>Indicator Colors</p>");
+	var $redIndicatorButton = $("<button class =    'toolbarColorItem permanent' style= 'padding: 2px 9px';>Red</button>");
+	var $yellowIndicatorButton = $("<button class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Yellow</button>");
+	var $greenIndicatorButton = $("<button  class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Green</button>");
+	var $blueIndicatorButton = $("<button   class = 'toolbarColorItem permanent' style= 'padding: 2px 9px';>Blue</button>");
+	var $whiteIndicatorButton = $("<button  class = 'toolbarColorItem permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
+	var $blackIndicatorButton = $("<button  class = 'toolbarColorItem permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
 	var indicatorButtonList = [$redIndicatorButton, $yellowIndicatorButton, $greenIndicatorButton, $blueIndicatorButton, $whiteIndicatorButton, $blackIndicatorButton];
 	
 		
 	
 	//Button that saves changes made to an annotation in "edit mode". Disabled in "POLY" and "RECT" modes, and thus is disabled from the start.
-	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Save Changes</button>");
+	var $saveEditChanges = $("<button id='saveEditChanges' class='buttonItem permanent' class = 'annoButtons' class = 'disabled'>Save Edit Changes</button>");
 	$saveEditChanges.addClass("disabled");
 	
 	//Button that sends the canvas, along with any annotations within, as a JSON object to the server for storing.
@@ -135,11 +132,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
 	
 	//Button that allows the user to delete a selected annotation.
-	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Delete selected annotation</button>");
+	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='buttonItem permanent' class = 'annoButtons' class = 'disabled'>Delete selected annotation</button>");
 	$deleteAnnoButton.addClass("disabled");
 	
 	//Button that allows the user to cycle through previously created annotations.
-	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarAnnoTextItem permanent' class = 'annoButtons' class = 'disabled'>Select next annotation</button>");
+	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='buttonItem permanent' class = 'annoButtons' class = 'disabled'>Select next annotation</button>");
 	$cycleAnnoButton.addClass("disabled");
 	
 	//Displays the link of the canvas ID.
@@ -196,12 +193,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$toolDiv.append($lineColorLabel);
 		for (n in lineColorButtonList){
-			$toolDiv.append(lineColorButtonList[n]);
+			$lineColorDiv.append(lineColorButtonList[n]);
 		}
+		$toolDiv.append($lineColorDiv);
+		
 		$toolDiv.append($indicatorColorLabel);
 		for (n in indicatorButtonList){
-			$toolDiv.append(indicatorButtonList[n]);
+			$indicatorColorDiv.append(indicatorButtonList[n]);
 		}
+		$toolDiv.append($indicatorColorDiv);
+		
 		$debugViewCheckbox.prop('checked', true);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($canvIdLabel);
@@ -580,7 +581,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				//If there are characters, add some.
 				isChars = true;
 				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
-				var $textBox = $("<textarea class='toolbarAnnoTextItem'>" + div.editable[n] + "</textarea>");
+				var $textBox = $("<textarea class='annoTextArea'>" + div.editable[n] + "</textarea>");
 				//When clicking off the textarea, we update the text to the completedPaths
 				$textBox.on("focusout", function () {
 					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, n, $textBox.val()]);
@@ -592,7 +593,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			} else {
 				//Add a dummy text area to indicate this prop in the annotation doesnt exist
 				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
-				var $textBox = $("<textarea readonly placeholder='NO LABEL: CANNOT EDIT' class='toolbarAnnoTextItem'></textarea>");
+				var $textBox = $("<textarea readonly placeholder='NO LABEL: CANNOT EDIT' class='annoTextArea'></textarea>");
 				$labelDiv.append($textBoxLabel);
 				$textDiv.append($textBox);
 			}

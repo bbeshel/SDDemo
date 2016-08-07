@@ -84,7 +84,7 @@
               "@type" : "oa:Annotation",
               "motivation" : "sc:painting",
               "resource" : {
-                "@id" : "http://lightonlens.com/wp-content/uploads/2013/07/raja_lol_gateway_arch1-2-2000x1125.jpg",
+                "@id" : "http://bbeshel.github.io/dummyCanvas.jpg",
                 "@type" : "dctypes:Image",
                 "format" : "image/jpeg",
                 "height" : 2365,
@@ -579,6 +579,7 @@
 			$canvasContainer.append($intCanvas);
 			
 			$wrapper.append($canvasContainer);
+			$wrapper.css('display', 'none');
 			//Init toolbar with wrapper as parent object
 			tool.init($wrapper);
 			
@@ -663,6 +664,7 @@
 			//When parser says it is done parsing
 			$(document).on("parser_allDataRetrieved", function () {
 				onAllDataRetrieved();
+				
 			});
 			
 			//Resets status of previous mode when the mode changes
@@ -824,6 +826,8 @@
 				console.log("ENTERING DUMMY CANVAS STATE");
 				tool.setDummyState();
 			}
+			
+			$("#CHwrapper").css('display', '');
 			
 			//Update associated indices of annotations to their annotationLists
 			updateAnnotationListIndices();
