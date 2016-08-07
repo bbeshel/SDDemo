@@ -5,9 +5,6 @@
  * Handler for IIIF Canvases for T-PEN. 
 */
 
-//TODO: bind mousevents to document, have canvas check if mouse exists
-//TODO: move canvas order: middle canvas is shapes, top is feedback/interaction
-//test
 
 	var CanvasHandler = function () {
 		
@@ -18,20 +15,17 @@
 		self.MODES = [
 			"POLY",
 			"EDIT",
-			"RECT",
-			"CIRC",
-			"ANNO",
+			"RECT"
 		];
 		
 		//The names of op modes as they appear to the user
 		self.MODE_NAMES = [
 			"Polygon",
 			"Edit",
-			"Rectalinear",
-			"Circular",
-			"Annotate"
+			"Rectalinear"
 		];
 		
+		//Dummy pointer for an annotation, used to add in otherContent field
 		var dummyAnnoPointer = {
 			"@id" : null,
 			"@type" : "oa:Annotation",
@@ -39,6 +33,7 @@
 			"sandbox" : "bbeshel"
 		};
 		
+		//A dummy rectalinear annotation, for drawing new annotations
 		var dummyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:painting",
@@ -51,6 +46,7 @@
 			"on" : null
 		};
 		
+		//A dummy SVG annotation, for drawing new annotations
 		var dummyPolyAnnotation = {
 			"@type" : "oa:Annotation",
 			"motivation" : "sc:painting",
@@ -66,6 +62,7 @@
 			"on" : null
 		};
 		
+		//A dummy annotation list, used to add a new annotationList to the sc:Canvas object
 		var dummyAnnotationList = {
 			"@id" : null,
 			"@type" : "sc:AnnotationList",
@@ -74,8 +71,8 @@
 			"resources" : []
 		};
 		
+		//A dummy canvas. Used ONLY if the parsed data did not have an sc:Canvas in it
 		var dummyCanvas = {
-      //This will be the anchor canvas in the anchor range
           "@id" : "http://www.example.org/dummy/canvas/",
           "@type" : "sc:Canvas",
 		  "@context": "http://iiif.io/api/presentation/2/context.json",
@@ -95,40 +92,58 @@
               },
               "on" : "http://www.example.org/dummy/canvas/"
           }],
-          "otherContent":[] // pretend its empty, you need to create the list for the first time, so start an array and put the annos in it.
+          "otherContent":[] 
          };
 
 		
 		/*
 		The default configuration object.
-		This will be overwritten by attributes of a SharedCanvas JSON-LD object when found, 
+		Some attributes will be overwritten by attributes of a SharedCanvas JSON-LD object when found, 
 		as well as by user preferences changed live in the toolbar
 		*/
 		var CONFIGS = {
+			//Pertains to the anoCx object
 			anno : {
 				strokeStyle : "black",
 				lineWidth : 1,
 				lineCap : "round"
 			},
+			//Pertains to the intCx object
 			feedback : {
 				strokeStyle : "red",
 				lineWidth : 1,
 				cursorSize : 1
 			},
+			//number of undos. Currently unused.
 			undoLimit : 50,
+			//Constant to determine how much the canvas was scaled up/down based on sc:Canvas width/height
 			canvasScale : 1,
+			//How many pixels until the mouse snaps to an anchor
 			snapZone : 10,
+			//The <canvas> width
 			canvasWidth : 0,
+			//The <canvas> height
 			canvasHeight : 0,
+			//The new annotation list to be added (if none exist).
 			newAnnotationList : null,
+			//The annotations that were imported from parsing
 			importedAnnotations : [],
+			//Source of current canvas image (if any)
 			canvasImageSrc : null,
+			//List of sc:annotationList objects
 			annotationLists : [],
+			//Raw JSON of the sc:Canvas object retrieved
 			canvasData : null,
+			//The @id param of the sc:Canvas
 			canvasId : null
 		};
 		
+		/*update tracker and procedure.
+		 *Runs through a list of update procedures to be completed.
+		*/
 		var updateProcedure = {
+			//List of functions in the procedure.
+			//Removed items retrieve the new JSON from the server and update locally.
 			procedures : [
 				function () {
 					updateAllAnnotations();
@@ -152,21 +167,17 @@
 					updateCanvas();
 				}
 			],
+			//runs through this.procedures
 			run : function () {
 				this.curIndex++;
 				if (this.curIndex === this.procedures.length) {
-					this.end();
-					$(document).trigger("handler_resetAnnoUpdateStatus");
-					$(document).trigger("toolbar_updateAnnotationData");
-					this.curIndex = -1;
+					this.end();	
 				} else {
 					this.procedures[this.curIndex]();
 				}
 			},
+			//ends update procedure
 			end : function () {
-				console.log(CONFIGS.annotationLists);
-				console.log(CONFIGS.newAnnotationList);
-				console.log(completedPaths);
 				console.log("UPDATE PROCEDURE COMPLETE!!");
 				removeMarkedDeletedPaths();
 				unsavedChanges = false;
@@ -174,24 +185,30 @@
 				$(document).trigger("toolbar_saveChangesComplete");
 				$(document).trigger("handler_enableUserInteraction");
 				annoDeleteQueue = [];
-				
+				$(document).trigger("handler_resetAnnoUpdateStatus");
+				$(document).trigger("toolbar_updateAnnotationData");
+				this.curIndex = -1;
 			},
 			curIndex : -1,
 		};
 		
-		var annoListData;
-		var canvasData;
-		
+		/*simple object that helps track what data was received by parsing
+		*/
 		var receivedDataCheck = {
+			//was an image found
 			image : false,
+			//were oa:Annotation obs found
 			annos : false,
+			//was sc:Canvas found
 			canvas : false,
+			//If all objects found
 			complete : function () {
 				if (this.image && this.annos && this.canvas) {
 					return true;
 				}
 				return false;
 			},
+			//If no objects found
 			fail : function () {
 				if (!this.image && !this.annos && !this.canvas) {
 					return true;
@@ -200,22 +217,24 @@
 			}
 		};
 		
-		//TODO: consider moving to init
-		//Object to house the toolbar and its functions
 		
+		//Parser for JSON or URI entered
 		var parser = new JSONparser(self);
 
+		//Object to house the toolbar and its functions
 		var tool = new CanvasHandlerToolbar(self, parser);
 				
-		//TODO: implement as feature
 		//Used as a toggle for closing a shape on click
+		//Currently unused
 		var snapToClosePathBool = true;
 		
 		//Bool for checking if the mouse is near an anchor. Based on CONFIGS.snapZone
 		var isInSnapZone = false;
 		
+		//Bool for checking if local version meets the server version
 		var unsavedChanges = false;
-		
+
+		//The setTimeout for mousemove (see mousemove event)
 		var mouseTimeout;
 		
 		//Bool for mouse down
@@ -233,16 +252,17 @@
 		//Bool to tell if the shape being edited has already been moved
 		var isShapeMoved = false;
 		
+		//Bool to tell if user can interact or not (used during save to server)
 		var userInteractionDisabled = false;
 		
-		var canvasDimensionsChecks = 0;
-		
-		var dimensionCheckLimit = 1;
-		
+		//Bool to tell if an ajax request has not completed yet (in execAjax)
+		//Currently unused, but may be useful
 		var ajaxWaitState = false;
 		
+		//List of objects waiting to be sent to execAjax
 		var ajaxRequestQueue = [];
 		
+		//List of @id of oa:Annotation objects needing to be deleted on server
 		var annoDeleteQueue = [];
 				
 		//Universal canvas mouse position
@@ -251,9 +271,8 @@
 		//Stores the previous canvas mouse position
 		var prevmPos = { x : -1, y : -1};
 		
-		//Container for HTML positioning, allows layering of canvases
-		//Normally, I abstain from inline CSS, but for now it's okay
-		var $canvasContainer = $("<div id='canvasContainer'></div>");
+		//Container for HTML positioning, allows layering of HTML5 canvases
+		var $canvasContainer;
 
 		//The canvas that holds the image (jQuery)
 		var $imgCanvas;
@@ -267,14 +286,10 @@
 		var anoCanvas;
 		var anoCx;
 		
-		//The canvas that loads and allows creation of annotations
+		//The canvas that draws indicators
 		var $intCanvas;
 		var intCanvas;
 		var intCx;
-		
-		//May not need
-		//Used as a bool for choosing on canvas click to end the path
-		var userEndedPath = false;
 		
 		//Stores all anchorLists that are completed
 		var completedPaths = [];
@@ -282,6 +297,8 @@
 		//Temporary storage for any annotations as anchorLists that are being edited
 		var selectedPaths = [];
 		
+		//List of undo objects
+		//Currently unused, but will be useful
 		var undoList = [];
 		
 		//The current index of all detected annotations in edit mode
@@ -290,12 +307,11 @@
 		//The index of the anchor in a specific annotation path that was selected
 		var selectedPathsAnchorIndex;
 		
-		//LOOK here for list of SVG after closing a path
 		//Stores HTML complete SVG tags defined by an anchor list path
+		//Currently unused, can be used for debug
 		var svgTags = [];
 		
-		//TODO: move these to CONFIGS
-		//Some styling
+		//Some styling to shorten code in createSVGTag
 		var svgStrokeColor = "stroke:black;";
 		var svgLineWidth = "line-width:5;";
 		var svgFillStyle = "fill:none;";
@@ -308,26 +324,42 @@
 		These points, called anchors, define a path, which will be used as an annotation.
 		*/
 		var anchorList = {
+			//List of x coords
 			x: [],
+			//List of y coords
 			y: [],
+			//Length of coords x, y pairs, simulates array
 			length: 0,
+			//Next four are bounding box dimensions
 			leftmost: 100000,
 			rightmost: 0,
 			topmost: 100000,
 			bottommost: 0,
+			//Corresponding sc:AnnotationList this anchorList belongs to
 			annoListIndex: -1,
+			//Corresponding index in its sc:AnnotationList
 			annoIndex: -1,
+			//@id for this annotation
 			annoId: null,
+			//next three are associated fields in oa:Annotation that hold text
 			"label": null,
 			"chars": null,
 			"cnt:chars": null,
+			//What type this is (currently, RECT or POLY)
 			type: null,
+			//Stringified JSON of this annotation
 			JSON: null,
+			//Does this anno need an update on server
 			needsUpdate: false,
+			//Does the JSON need an update from server
 			needsLocalUpdate: false,
+			//Is this going to be deleted from completedPaths, and on server
 			markedForDelete: false,
+			//Stroke color on <canvas> associated with this shape
 			strokeStyle: "black",
+			//Line width on <canvas> associated with this shape
 			lineWidth: 1,
+			//Pushes x, y to respective lists, then updates bounding box
 			push: function (px, py) {
 				this.x.push(px);
 				this.y.push(py);
@@ -335,11 +367,13 @@
 				
 				this.updateBounds(px, py);
 			},
+			//Removes the last point (useful when editing anchors)
 			removeLast: function () {
 				this.x.splice(this.x.length - 1, 1);
 				this.y.splice(this.y.length - 1, 1);
 				this.length--;
 			},
+			//Clears and resets the anchorList (since this object is shared)
 			clear: function () {
 				this.x = [];
 				this.y = [];
@@ -360,12 +394,14 @@
 				this.needsLocalUpdate = false;
 				this.markedForDelete = false;
 			},
+			//Updates the bounding box boundaries based on new point
 			updateBounds: function (px, py) {
 				this.leftmost = px < this.leftmost ? px : this.leftmost;
 				this.rightmost = px > this.rightmost ? px : this.rightmost;
 				this.topmost = py < this.topmost ? py : this.topmost;
 				this.bottommost = py > this.bottommost ? py : this.bottommost;
 			},
+			//Generates bounding box by checking all points
 			generateBounds: function () {
 				this.leftmost = 100000;
 				this.rightmost = 0;
@@ -387,28 +423,34 @@
 					}
 				}
 			},
+			//Returns the area in the bounding box (used during annotation selection in EDIT)
 			getBoundingBoxArea: function () {
 				return Math.abs(this.rightmost - this.leftmost) * Math.abs(this.bottommost - this.topmost);
 			},
+			//If the text for this anno has been updated recently
 			hasNewText : function () {
 				if (this["chars"] != null || this["cnt:chars"] != null || this["label"] != null) {
 					return true;
 				}
 			},
+			//Generates all JSON associated with this, then stores it
 			generateJSON: function () {
 				var anno;
 				switch (this.type) {
 					case "POLY":
 						if (this.JSON == null) {
+							//Create a dummy annotation with sc:Canvas id as on prop
 							anno = $.extend(true, {}, dummyPolyAnnotation);
 							anno["on"] = CONFIGS.canvasId;
 						} else {
+							//Edit the current JSON
 							anno = JSON.parse(this.JSON);
 						}
+						//Generate an SVG tag
 						var SVGstring = createSVGTag(this);
+						//Store the SVG string where it belongs according to iiif.io 2.1
 						anno["resource"]["selector"]["chars"] = SVGstring;
-						console.log(SVGstring);
-						//TODO: get the link of this canvas for the on property
+						//Convert the bounding box to sc:Canvas dimensions
 						var xywh = convertToNativeDimensions([
 							this.leftmost,
 							this.rightmost,
@@ -421,10 +463,12 @@
 						}
 						var on = anno["on"];
 						
+						//find the #xywh substring in on property
 						if (on.search("#xywh=") > -1) {
 							on = on.substring(0, on.search("#xywh="));
 						} 
 						
+						//compute xy width height
 						on += "#xywh=" 
 						+ xywh[0] + "," 
 						+ xywh[2] + "," 
@@ -436,6 +480,7 @@
 						
 						this.JSON = JSON.stringify(anno);
 						
+						//Add the new annotation comments into the JSON
 						if (this["label"] != null) {
 							this.JSON = editCharsPropForJSON(this.JSON, "label", this["label"]);
 						}
@@ -448,7 +493,7 @@
 						
 						break;
 					case "RECT":
-						//TODO: probably have a check to see if this was edited
+						//All below is same as "POLY" case
 						if (this.JSON == null) {
 							anno = $.extend(true, {}, dummyAnnotation);
 							var on = CONFIGS.canvasId;
@@ -457,12 +502,6 @@
 							var on = anno["on"];
 							on = on.substring(0, on.search("#xywh="));
 						}
-						console.log(this.leftmost);
-						console.log(this.topmost);
-						console.log(this.rightmost);
-						console.log(this.bottommost);
-						//calculate xywh
-						//TODO: check if x[0] is actually the top-left point
 						var xywh = convertToNativeDimensions([
 							this.leftmost,
 							this.rightmost,
@@ -470,7 +509,6 @@
 							this.bottommost
 						]);
 						
-						//TODO: figure out a better way to escape # char in ajax
 						on += "#xywh=" 
 						+ xywh[0] + "," 
 						+ xywh[2] + "," 
@@ -478,10 +516,6 @@
 						+ (xywh[3] - xywh[2]);
 						
 						anno["on"] = on;
-						
-						console.log(this.x);
-						console.log(this.y);
-						
 						
 						this.JSON = JSON.stringify(anno);
 						
@@ -500,7 +534,7 @@
 					
 				}
 			},
-			//TODO: currently doesn't work, recursion etc...
+			//currently doesn't work, recursion etc...
 			getAnnoComments : function () {
 				if (this.JSON == null) {
 					return "(No text associated)";
@@ -516,29 +550,22 @@
 		};
 		
 	
-		
+		/*
+		*Initialize the canvas! Bind events, setup <canvas> with data, init toolbar.
+		*/
 		this.init = function (data) {
 			
-		
+			//Wraps the <canvas> obs
+			$canvasContainer = $("<div id='canvasContainer'></div>");
 			//Wraps the <canvas> and the toolbar.
 			var $wrapper = $("<div id='CHwrapper'>");
+			
 			$("body").append($wrapper);
 			
-			//Button to close the current path (deprecated?)
-			// var endPathBtn = $("<button id='endCurrentPathBtn' style='position: relative;'>End Current Path</button>");
-			// endPathBtn.on("click", endPath);
-			// $("body").append(endPathBtn);
-			//TODO: need to get image dynamically from json
-			//Temporary image used for testing
-			var img2 = new Image();
-			img2.src = "http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg";
-			
-			
+			//Create <canvas> obs and add them to container
 			$imgCanvas = $("<canvas class='tpenCanvas' id='imgCanvas'>");
 			imgCanvas = $imgCanvas.get(0);
 			imgCx = imgCanvas.getContext("2d");
-			//TODO: need to have dynamic parent to append to
-			//TODO: find default ID to attach to, or take as param.
 			$canvasContainer.append($imgCanvas);
 			
 			$anoCanvas = $("<canvas class='tpenCanvas' id='anoCanvas'>");
@@ -551,19 +578,18 @@
 			intCx = intCanvas.getContext("2d");
 			$canvasContainer.append($intCanvas);
 			
-			
-			
-			
-			
 			$wrapper.append($canvasContainer);
+			//Init toolbar with wrapper as parent object
 			tool.init($wrapper);
 			
+			//Setup dummy annoList in CONFIGS for later use
 			var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
 			CONFIGS.newAnnotationList = dummyAnnoList;
 			
-			$(document).on("handler_execUndo", function () {
-				execUndo();
-			});
+			//removed, can be used for undo function in future
+			// $(document).on("handler_execUndo", function () {
+				// execUndo();
+			// });
 
 			//Clear the interaction canvas
 			$(document).on("handler_canvasIntClear", function () {
@@ -585,14 +611,17 @@
 				changeLineWidth(data);
 			});
 			
+			//Changes the line color
 			$(document).on("handler_changeLineColor", function(e, data){
 				changeLineColor(data);
 			});
 			
+			//Changes the color of the indicator on the interaction canvas
 			$(document).on("handler_changeIndicatorColor", function(e, data){
 				changeIndicatorColor(data);
 			});
 			
+			//Change the status of unsavedChanges
 			$(document).on("handler_changeSaveStatus", function() {
 				unsavedChanges = false;
 			});
@@ -605,99 +634,44 @@
 				}
 			});
 			
+			//Resets the status of needsUpdate on all completedPaths to false
 			$(document).on("handler_resetAnnoUpdateStatus", function () {
 				resetAnnoUpdateStatus();
 			});
 			
-			$(document).on("handler_ajaxComplete", function () {
-				// requestAjax();
-			});
-			
+			//Exports data to the server (experimental - only in test cases)
 			$(document).on("handler_exportAllDataJSON", function () {
-				//TODO: do not use this until we have checks for each annotation
-				/*currently only throws together the .JSON versions 
-				of each anchorList annotation in a list and adds them to the 
-				CONFIGS.canvasData, then sends the request to the server
-				*/
-				
-				var posturl, params;
-				//TODO: loop through otherContent
-				//TODO: update all the local json with the updated version from the server
-					
-				//TODO: save new annotations, new annotation lists
 				generateAllJSON();
-				
 				updateProcedure.run();
-				
-				// console.log("updating annotations");
-				// updateAllAnnotations();
-				// console.log("updating annotations locally");
-				// updateLocalAnnotationJSON();
-				
-				
-					
-				
-				// console.log("updating annotationLists");
-				// updateAllAnnotationLists();
-				// console.log("updating annotationLists locally");
-				// updateLocalAnnotationListsJSON();
-				
-				
-				// updateNewAnnotationList();
-				
-				// $(document).trigger("handler_resetAnnoUpdateStatus");
-				
-				// console.log(completedPaths);
-				// console.log(CONFIGS.annotationLists);
-				// console.log(CONFIGS.newAnnotationList);
-				
 			});
 			
+			//Found annotations from parser
 			$(document).on("parser_annoDataRetrieved", function (e, data) {
-				console.log("FOUND ANNO DATA");
-				console.log(data);
-				// CONFIGS.annotationList = jQuery.extend(true, {}, data);
-				// convertAnnotations();
 				receivedDataCheck.annos = true;
-				// onAllDataRetrieved();
 			});
 			
+			//Found sc:Canvas from parser
 			$(document).on("parser_canvasDataRetrieved", function (e, data) {
-				console.log("FOUND CANVAS DATA");
-				console.log(data);
-				// CONFIGS.canvasData = jQuery.extend(true, {}, data);
-				// setCanvasDimensions();
 				receivedDataCheck.canvas = true;
-				// onAllDataRetrieved();
 			});
 			
+			//Found image from parser
 			$(document).on("parser_imageDataRetrieved", function (e, data) {
-				console.log("FOUND IMAGE DATA");
-				console.log(data);
-				//TODO: set canvas size based on parsed info, unless missing
-				//TODO: add variable image tag for onload based on parsed content
-				// var img = $("<img src='http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg' />");
-				// CONFIGS.canvasImageSrc = data;
-				// drawAndResizeImage();
 				receivedDataCheck.image = true;
-				// onAllDataRetrieved();
 			});
 			
+			//When parser says it is done parsing
 			$(document).on("parser_allDataRetrieved", function () {
 				onAllDataRetrieved();
 			});
 			
-			$(document).on("handler_setupStatusUpdate", function () {
-				
-			});
-			
-			//Changes the mode of operation on the canvas
+			//Resets status of previous mode when the mode changes
 			$(document).on("toolbar_changeOperationMode", function (e, data) {
 				tool[data].reset();
 			});
 			
+			//Select the associated path if an annotation in the toolbar was clicked
 			$(document).on("toolbar_annoItemClick", function (e, data) {
-				console.log(data);
 				$(document).trigger("handler_canvasIntClear");
 				//Simulate a click for edit mode if we are in that mode
 				//We don't want to switch the user to edit mode without knowing
@@ -707,32 +681,36 @@
 				drawPathIndicator(data);
 			});
 			
+			//Updates the characters from the toolbar for selected annotation
 			$(document).on("toolbar_annoItemCharsUpdate", function (e, path, prop, comment) {
 				var ind = getCompletedPathsIndex(path);
 				completedPaths[ind][prop] = comment;
 				completedPaths[ind].needsUpdate = true;
 			}); 
 			
+			//Prevent user interaction
 			$(document).on("handler_preventUserInteraction", function () {
 				userInteractionDisabled = true;
 			});
 			
+			//Enable user interaction
 			$(document).on("handler_enableUserInteraction" , function () {
 				userInteractionDisabled = false;
 			});
 			
+			//Delete selected annotation
 			$(document).on("handler_deleteAnnotation", function (e) {
 				if (tool.MODE === "EDIT") {
 					tool.EDIT.del(e);
 				}
 			});
 			
+			//Cycle through overlapping selected annotations
 			$(document).on("handler_cycleAnnotation", function (e) {
 				if (tool.MODE === "EDIT") {
 					tool.EDIT.tab(e);
 				}
 			});
-			
 			
 			//Generic document mousemove catch and handler
 			$(document).on("mousemove", function (e) {
@@ -759,17 +737,17 @@
 			$(document).on("mousedown", function (e) {
 				clearTimeout(mouseTimeout);
 				mouseTimeout = null;
-				mouseTimeout = setTimeout(function () {isMouseDown = true;}, 10);
+				mouseTimeout = setTimeout(function () {
+					isMouseDown = true;
+				}, 10);
 			});
 			
 			//Generic document mouseup catch and handler
 			$(document).on("mouseup", function (e) {
 				clearTimeout(mouseTimeout);
 				isMouseDown = false;
-				console.log("mup");
 			});
 
-			//TODO: make sure we dont call a function that doesnt exist!
 			//Dynamic document keydown catch and handler
 			$(document).keydown(function (e) {
 				if (userInteractionDisabled) {
@@ -794,65 +772,46 @@
 				}
 			});
 			
-			
-			
-			
 			if (data != null) {
-				console.log("data wasnt null");
 				parser.requestData(data);
-			} else {
-				// CONFIGS.canvasImageSrc = 'http://norman.hrc.utexas.edu/graphics/mswaste/160 h612e 617/160_h612e_617_001.jpg';
-				// var $canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
-				// $canvImg.on("load", function () {
-					// //TODO: make sure size of canvas conforms to standard
-					// //TODO: make sure original data preserved corresponding to JSON canvas size
-					// CONFIGS.canvasWidth = $canvImg.get(0).width;
-					// CONFIGS.canvasHeight = $canvImg.get(0).height;
-					// setCanvasDimensions();
-					// console.log(CONFIGS.canvasWidth);
-					// imgCx.drawImage($canvImg.get(0), 0, 0);
-				// });
 			}
-			
-			
-			
 		};
 
-		//Callback for when the parser has finished
+		/*
+		*When the parser finishes, update the <canvas> and toolbar
+		*/
 		var onAllDataRetrieved = function () {
-			alert("dat retriev");
-			console.error("ALL DAT RET");
-			console.trace("ALL DAT RET");
-			
 			
 			if (receivedDataCheck.canvas) {
+				//Enumerate canvasData in CONFIGS and setup new canvas dimensions
 				var canv = parser.getCanvasJSON();
 				CONFIGS.canvasData = jQuery.extend(true, {}, canv);
 				CONFIGS.canvasId = parser.getCanvasId();
 				$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 				setCanvasDimensions();
 			} else {
+				//Setup a dummy canvas
 				alert('WARNING! @type of "sc:Canvas" was not found. Page will load a default canvas of width 1000, height 1000. All updates to any annotations found will be reflected on the new canvas.' );
-				//TODO: setup fallback here instead
 				var dummyCan = $.extend(true, {}, dummyCanvas);
 				CONFIGS.canvasData = dummyCan;
 				var dummyAnnoList = $.extend(true, {}, dummyAnnotationList);
-				// CONFIGS.canvasData["otherContent"].push(dummyAnnoList);
 				CONFIGS.canvasId = CONFIGS.canvasData["@id"];
 				setCanvasDimensions();
 			}
 			
 			if (receivedDataCheck.image) {
+				//Put image on canvas
 				var img = parser.getCanvasImage();
 				CONFIGS.canvasImageSrc = img;
 				drawAndResizeImage();
 			} else {
-				//TODO: fallback
+				//Use image in dummyCanvas
 				CONFIGS.canvasImageSrc = CONFIGS.canvasData["images"][0]["resource"]["@id"];
 				drawAndResizeImage();
 			}
 			
 			if (receivedDataCheck.annos) {
+				//Get annotations and lists from parser and save them, then convert to anchorLists
 				var annoLists = parser.getAllAnnotationListJSON();
 				CONFIGS.annotationLists = $.extend(true, [], annoLists);
 				var annos = parser.getAllAnnotationJSON();
@@ -861,31 +820,28 @@
 				convertAnnotations();
 			} 
 			
-			//TODO: revise
-			if (receivedDataCheck.complete()) {
-				console.log("WE DID IT");
-			} else if (receivedDataCheck.fail()) {
-				console.log("WE DUMMY NOW");
+			if (receivedDataCheck.fail()) {
+				console.log("ENTERING DUMMY CANVAS STATE");
 				tool.setDummyState();
 			}
-			//TODO: remove until completed testing
-			// tool.setDummyState();
 			
+			//Update associated indices of annotations to their annotationLists
 			updateAnnotationListIndices();
 			
+			//Draws the list of completedPaths (annotations)
 			redrawCompletedPaths();
 			
+			//Enumerate list of annotations in toolbar
 			$(document).trigger("toolbar_updateAnnotationData");
 			
-			pushUndo();
-			// setCanvasDimensions();
-			// drawAndResizeImage();
-			// drawAllCanvasAnnotations();
 		};
 		
-	
+		/*
+		*Setup <canvas> dimensions 
+		*/
 		var setCanvasDimensions = function () {
 			
+			//Unused; could be used to resize canvas on window resize
 			var size = {
 				width: window.innerWidth || document.body.clientWidth,
 				height: window.innerHeight || document.body.clientHeight
@@ -893,22 +849,17 @@
 			
 			//Grab the canvas dimensions from the parsed data
 			if (CONFIGS.canvasData != null) {
-				console.log("canvas data found");
 				CONFIGS.canvasWidth = CONFIGS.canvasData.width
 				CONFIGS.canvasHeight = CONFIGS.canvasData.height;
 			}
 			
-			//Canvas data exists with no dimensions
+			//Canvas data exists with no dimensions, use default
 			if (CONFIGS.canvasWidth === 0) {
-				// alert("aw snap");
 				CONFIGS.canvasWidth = 1000;
 				CONFIGS.canvasHeight = 1000;
 			} 
-			
-			console.log(CONFIGS.canvasWidth);
-			console.log(CONFIGS.canvasHeight);
 		
-		
+			//Resize the canvas because it wont fit the page well
 			var wid = CONFIGS.canvasWidth;
 			var hgt = CONFIGS.canvasHeight;
 			while (CONFIGS.canvasWidth < 600 && CONFIGS.canvasHeight < 400) {
@@ -930,12 +881,9 @@
 			wid = CONFIGS.canvasWidth;
 			hgt = CONFIGS.canvasHeight;
 		
-			
+			//Resize all canvases
 			imgCanvas.width = wid;
 			imgCanvas.height = hgt;
-			
-			// imgCx.drawImage(canvImg.get(0), 0, 0);
-			
 			anoCanvas.width = wid;
 			anoCanvas.height = hgt;
 			intCanvas.width = wid;
@@ -945,6 +893,9 @@
 			$("#toolContainer").height(hgt);
 		};
 		
+		/*
+		*Load in the canvas source from the CONFIGS, and put it on the image canvas
+		*/
 		var drawAndResizeImage = function () {
 			if (CONFIGS.canvasImageSrc == null) {
 				console.error("Warning: image source was null");
@@ -952,75 +903,55 @@
 			}
 			var $canvImg = $("<img src='" + CONFIGS.canvasImageSrc + "'/>");
 			$canvImg.on("load", function () {
-				//TODO: make sure size of canvas conforms to standard
-				//TODO: make sure original data preserved corresponding to JSON canvas size
-				// $canvImg.get(0).width = CONFIGS.canvasWidth;
-				// $canvImg.get(0).height = CONFIGS.canvasHeight;
 				imgCx.drawImage($canvImg.get(0), 0, 0, CONFIGS.canvasWidth, CONFIGS.canvasHeight);
-				
 			})
 			.on("error", function () {
 				alert("Could not retrieve image data!");
 			});
 		};
 		
-		//Converts all annotations to the anchorList type
+		/*
+		*Converts all oa:Annotation objects parsed in to anchorList type for edit
+		*/
 		var convertAnnotations = function () {
-			// if (CONFIGS.canvasWidth === 0 && CONFIGS.canvasHeight === 0) {
-				// setTimeout(function () {
-					// //TODO: remove this, we should always have canvas dimensions?
-					// canvasDimensionsChecks++;
-					// if (canvasDimensionsChecks === dimensionCheckLimit) {
-						// CONFIGS.canvasWidth = 1000;
-						// CONFIGS.canvasHeight = 1000;
-						// setCanvasDimensions();
-					// }
-					// console.log("Warning: attempt to draw annotations failed. Reason: No canvas dimensions. Retrying...");
-					// convertAnnotations();
-				// }, 5000);
-			// } else
 			if (CONFIGS.importedAnnotations.length < 1) {
 				alert("Warning: attempt to draw annotations failed. Reason: annotationList was null");
 			} else {
-				
 				for (var i = 0; i < CONFIGS.importedAnnotations.length; i++) {
-				
 					var annos = CONFIGS.importedAnnotations[i];
 					var ind;
-					console.log(annos);
-					
-					
-					//TODO: check the dimensions of the SVG to match canvas
-					//TODO: change to convert to completedPaths only
+					//Find the area that an oa:Annotation would store an SVG path
 					if (annos.hasOwnProperty("resource") && annos["resource"].hasOwnProperty("selector")) {						
-						console.log("SVG");
 						if (annos["resource"]["selector"].hasOwnProperty("chars")) {
-							// var svgString = annos[i]["resource"]["selector"]["chars"];
-							// drawSVGAnnotation(svgString);
-							// var curAnno = annos[j];
 							SVGToAnchor(annos, i);
-							
 						}
+					//Else, we try to find the xywh property
 					} else if (annos.hasOwnProperty("on")) {
-						console.log("rect");
-						// var curAnno = annos[j];
-						// console.log(curAnno);
 						rectToAnchor(annos, i);
 					}
-				
 				}
+				//Draw them to canvas
 				redrawCompletedPaths();
 			}
 			
 		};
 		
+		/*
+		*Convert the rectalinear oa:Annotation to anchorList
+		* @param annotation	- the annotation JSON
+		* @param annoListIndex - which annotationList it was
+		* @param annoIndex - where in the annotationList it was
+		*/
 		var rectToAnchor = function (annotation, annoListIndex, annoIndex) {
-			console.log(annotation);
 			var ind = annotation["on"].search("xywh");
+			//If we found xywh string in our search 
 			if (ind > -1) {
+				//Get a string with just the numbers after "xywh="
 				var dimString = annotation["on"].substr((ind + 5));
+				//Split them into array indices
 				var dims = dimString.split(",");
 				var x, y, w, h;
+				//Convert from string to number
 				x = Number(dims[0]);
 				y = Number(dims[1]);
 				w = Number(dims[2]);
@@ -1033,6 +964,7 @@
 				w = ar[2];
 				h = ar[3];
 				
+				//Push the associated points to create a rectalinear object
 				anchorList.clear();
 				anchorList.push(x, y);
 				anchorList.push((x + w), y);
@@ -1040,14 +972,13 @@
 				anchorList.push(x, (y + h));
 				anchorList.push(x, y);
 				
+				//Write associated data
 				anchorList.type = "RECT";
 				anchorList.annoListIndex = annoListIndex;
 				anchorList.annoIndex = annoIndex;
 				anchorList.annoId = annotation["@id"];
-				// TODO: determine the position in the anno list?
-				// anchorList.annoListIndex =
-				// drawRectalinearAnnotation(dims);
 				anchorList.JSON = JSON.stringify(annotation);
+				//Copy and push to anchorList (prevents pass by reference)
 				var curList = jQuery.extend(true, {}, anchorList);
 				completedPaths.push(curList);
 				anchorList.clear();
@@ -1056,25 +987,31 @@
 			}
 		};
 		
+		/*
+		*Convert the SVG (polygonal) oa:Annotation to anchorList
+		* @param annotation	- the annotation JSON
+		* @param annoListIndex - which annotationList it was
+		* @param annoIndex - where in the annotationList it was
+		*/
 		var SVGToAnchor = function (annotation, annoListIndex, annoIndex) {
 			var chars = annotation["resource"]["selector"]["chars"];
 			var ind = chars.search("points");
+			//If we found "points" in the SVG tag (meaning its actually a polygon)
 			if (ind > -1) {
+				//Chop off previous SVG string before "points"
 				var charSub = chars.substr(ind);
-				console.log(charSub);
+				//Start at the string delimiter for the points
 				var indBegin = charSub.search("\"");
-				console.log(indBegin);
 				charSub = charSub.substr((indBegin + 1));
-				console.log(charSub);
+				//Find the end delimiter for the points
 				var indEnd = charSub.search("\"");
-				console.log(indEnd);
+				//Truncate to just the points
 				var pointString = charSub.substring(0, indEnd);
-				console.log(pointString);
+				//Split them at commas and spaces
 				var points = pointString.split(/[\s,]+/);
-				console.log(points);
 				var ar;
-				//TODO: make sure the split worked
 				anchorList.clear();
+				//Convert each pair to numbers and add them to anchorList
 				for (var i = 0; i < points.length; i++) {
 					points[i] = Number(points[i]);
 					points[i+1] = Number(points[i+1]);
@@ -1085,8 +1022,10 @@
 						points[i+1] = ar[1];
 						anchorList.push(points[i], points[i+1]);
 					}
+					//Skip one because we go through two points per iteration
 					i++;
 				}
+				//Write associated data
 				anchorList.type = "POLY";
 				anchorList.annoListIndex = annoListIndex;
 				anchorList.annoIndex = annoIndex;
@@ -1095,10 +1034,12 @@
 				var curList = jQuery.extend(true, {}, anchorList);
 				completedPaths.push(curList);
 				anchorList.clear();
-				
 			}
 		};
-		
+
+
+		//Determines the type of SVG...used for other SVG types
+		//Currently unused
 		var drawRectalinearAnnotation = function (dimsArray) {
 			//TODO: do some checks to make sure values conform
 			anoCx.beginPath();
@@ -1138,10 +1079,8 @@
 			}
 			
 		};
-		
+
 		var determineSVGType = function (svgString) {
-			//TODO: use the configs object 
-			// var types = ["cirlce", "poly"];
 			var type, ind;
 			for (var i = 0; i < self.MODES.length; i++) {
 				ind = string.toLowerCase().indexOf(self.MODES[i]);
@@ -1153,11 +1092,18 @@
 			
 		};
 		
+		/*Edit any properties associated with annotation text
+		* @param json - the json object or string 
+		* @param prop - the json property to check for
+		* @param comment - the comment to add to the property
+		* @return the stringified modified json
+		*/
 		var editCharsPropForJSON = function (json, prop, comment) {
 			if (typeof json === "string") {
 				json = JSON.parse(json);
 			}
 			
+			//Helper to recursively search through json object for the property, then add comment
 			var doSearch = function (ob, prop, comment) {
 				if (ob.hasOwnProperty(prop)) {
 					ob[prop] = comment;
@@ -1172,16 +1118,18 @@
 				
 			};
 			doSearch(json, prop, comment);
-			console.log(json);
+			
 			return JSON.stringify(json);
 		};
 		
+		//Generates the JSON string that represents each anchorList
 		var generateAllJSON = function () {
 			for (var i = 0; i < completedPaths.length; i++) {
 				completedPaths[i].generateJSON();
 			}
 		};
 		
+		//Generate the JSON string that represents each anchorList that needs an update
 		var updateJSON = function () {
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].needsUpdate) {
@@ -1190,13 +1138,15 @@
 			}
 		};
 		
+		//Set the needsUpdate status to false for all anchorLists
 		var resetAnnoUpdateStatus = function () {
 			for (var i = 0; i < completedPaths.length; i++) {
 				completedPaths[i].needsUpdate = false;
 			};
 		};
 		
-		
+		//Push the current state tot he undo list
+		//Currently unused
 		var pushUndo = function () {
 			
 			if (undoList.length > CONFIGS.undoLimit) {
@@ -1208,27 +1158,15 @@
 			console.log(undoList);
 		};
 		
+		//Updates the saved changes display on toolbar
 		var unsavedChangesDisplay = function() {
 			$(document).trigger("toolbar_changeSaveStatus", unsavedChanges);
 		};
 		
-		// var requestAjax = function (jsonType) {
-			
-			// while (ajaxRequestQueue.length > 0) {
-				// if (!ajaxWaitState) {
-					// execAjax(ajaxRequestQueue.shift(), jsonType);
-					// // requestAjax(jsonType);
-				// }
-				// if (ajaxRequestQueue.length > 0) {
-					// // requestAjax(jsonType);
-				// } else {
-				// }
-			// }
-			// $(document).trigger("handler_ajaxComplete");
-		// };
-		
+		/*Executes an ajax request as part of updateProcedure
+		*Updates the associated data locally based on response and case
+		*/
 		var execAjax = function (request, jsonType) {
-				console.log(request.url);
 				ajaxWaitState = true;
 				$.ajax({
 					url: request.url,
@@ -1237,9 +1175,10 @@
 					crossDomain: true,
 				})
 				.done(function (data) {
-					console.log(data);
+					//If a type was specified
 					if (jsonType != null) {
 						switch (jsonType) {
+							//Most of these just add the @id the server responds with when creating a new annotation
 							case "anno": 
 								if(data.hasOwnProperty("@id")) {
 									completedPaths[request.index].annoId = data["@id"];
@@ -1248,7 +1187,6 @@
 							case "annoLocal":
 								if (request.index != null) {
 									completedPaths[request.index].JSON = JSON.stringify(data);
-									// var parsedJSON = JSON.parse(data);
 									completedPaths[request.index].needsLocalUpdate = false;
 								}
 							break;
@@ -1268,6 +1206,7 @@
 								}
 							break;
 							case "newAnnoListLocal":
+								//Copies the newly created annotationList and adds it to the current list
 								CONFIGS.newAnnotationList = data;
 								var temp = $.extend(true, {}, CONFIGS.newAnnotationList);
 								CONFIGS.annotationLists.push(temp);
@@ -1275,12 +1214,14 @@
 							break;
 							case "canvas":
 								CONFIGS.canvasId = data["@id"];
+								//Update the @id of this canvas to the toolbar
 								$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
 							break;
 							default:
 						}
 					}
 					ajaxWaitState = false;
+					//As long as there are still queued requests, keep calling this, otherwise continue updateProcedure
 					if (ajaxRequestQueue.length > 0) {
 						execAjax(ajaxRequestQueue.shift(), jsonType);
 					} else {
@@ -1296,59 +1237,31 @@
 						+ "Error status:" + status 
 						+ "Error message:" + errorThrown
 					);
+					//End the update procedure after an error so we dont freeze the interaction forever
+					updateProcedure.end();
 				});
 			 
 		};
 		
-		var saveNewAnnotations = function () {
-			
-		};
-		
-		var saveNewAnnotationList = function () {
-			
-		};
-		
-		
-		
+		/*
+		*Pushes all associated JSON of all anchorLists to the server, updates them, or deletes them
+		*/
 		var updateAllAnnotations = function () {
 			var posturl, params;
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].needsUpdate) {
-					console.log(completedPaths[i].JSON);
-					//TODO: check if valid JSON first
-					// var json = JSON.parse(completedPaths[i].JSON);
-				
-					
-						params = stripExcessJSONData(completedPaths[i].JSON);
-					// // CONFIGS.canvasData["otherContent"] = CONFIGS.annotationList;
+					params = stripExcessJSONData(completedPaths[i].JSON);
+					//if we already have an @id, then we can just update the JSON. otherwise, create a new one on the server
 					if (completedPaths[i].annoId == null) {
-						// params = JSON.stringify(json);
-						// params = completedPaths[i].JSON;
 						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
 					} else {
-						// params = completedPaths[i].JSON;
 						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 					}
 					ajaxRequestQueue.push({ url : posturl, index : i });
 					
-					console.log(posturl);
-					
 					completedPaths[i].needsUpdate = false;
 					completedPaths[i].needsLocalUpdate = true;
-					// $.ajax({
-						// url: posturl,
-						// type: "POST",
-						// dataType: "json",
-						// crossDomain: true,
-					// })
-					// .done(function (data) {
-						// console.log(data);
-					// })
-					// .fail(function (xhr, status, errorThrown) {
-						// console.log(status);
-						// console.log(errorThrown);
-					// });
-					// CONFIGS.canvasData["otherContent"][j]["resources"].push(json);
+				//If the current anchorList was marked to be deleted, delete it on the server
 				} else if (completedPaths[i].markedForDelete) {
 					params = JSON.stringify({ "@id" : completedPaths[i].annoId });
 					posturl = "http://165.134.241.141:80/annotationstore/anno/deleteAnnotationByAtID.action?content=" + encodeURIComponent(params);
@@ -1370,6 +1283,10 @@
 			
 		};
 		
+		/*
+		*Update the annotationList with the new @id s of all the annotations we pushed to the server
+		*@param curAnoListIndex - the current annotationList in CONFIGS to update
+		*/
 		var updateAnnotationList = function (curAnoListIndex) {
 			var curAnnoNeedsUpdate = false;
 			//check if it has the proper structure
@@ -1378,30 +1295,8 @@
 				console.log(CONFIGS.annotationLists[curAnoListIndex]);
 				return;
 			}
-			// CONFIGS.annotationLists[curAnoListIndex]["resources"] = [];
-			
-			//loop through and add new annotations to the list
-			// for (var i = 0; i < completedPaths.length; i++) {
-				// if (completedPaths[i].annoListIndex === curAnoListIndex) {
-					// var annoIsInList = false;
-					// for (var j = 0; j < CONFIGS.annotationLists[curAnoListIndex]["resources"].length; j++) {
-						// if (CONFIGS.annotationLists[curAnoListIndex]["resources"][j]["@id"] === completedPaths[i].annoId) {
-							// annoIsInList = true;
-						// }
-					// }
-					// //TODO: use this if anno was added to the current anno list
-					// if (!annoIsInList) {
-						// // curAnnoNeedsUpdate();
-						// // var anoPointer = $.extend(true, {}, dummyAnnoPointer);
-						// // anoPointer["@id"] = completedPaths[i].annoId;
-						// // CONFIGS.annotationLists[i]["resources"].push(anoPointer);
-					// }
-				// }
-			// }
-			// console.log(CONFIGS.annotationLists[curAnoListIndex]);
-			
+	
 			//push all new annotations to the first anno list if it exists, otherwise make a new anno list
-			//TODO: maybe push this to its own function before updating anno lists
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].annoListIndex === -1) {
 					if (CONFIGS.annotationLists.length > 0) {
@@ -1411,8 +1306,8 @@
 						anoPointer["@id"] = completedPaths[i].annoId;
 						CONFIGS.annotationLists[0]["resources"].push(anoPointer);
 					} 
+				//Loop through and remove the id from the annotationList if it was deleted
 				} else if (completedPaths[i].markedForDelete && completedPaths[i].annoListIndex === curAnoListIndex) {
-					//TODO: loop here to find the id and remove it
 					for (var j = 0; j < CONFIGS.annotationLists[curAnoListIndex]["resources"].length; j++) {
 						if (completedPaths[i].annoId === CONFIGS.annotationLists["resources"][j]["@id"]) {
 							CONFIGS.annotationLists[curAnoListIndex]["resources"].splice(j, 1);
@@ -1420,33 +1315,16 @@
 					}
 				}
 			}
-			//TODO: if delete, maybe need to save anno list as new?
-			
-			
-			
-			//last, check if this annolist has an id
-			// if (!CONFIGS.annotationLists[j].hasOwnProperty("@id")) {
-				
-				// params = JSON.stringify(CONFIGS.annotationLists[j]);
-				// posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
-				// ajaxRequestQueue.push(posturl);
-			// }
-			
-			// if (curAnnoNeedsUpdate) {
-				var params = stripExcessJSONData(CONFIGS.annotationLists[curAnoListIndex]);
-				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
-				ajaxRequestQueue.push({ url : posturl, index : curAnoListIndex});
-				console.log(posturl);
-				// execAjax({ url : posturl }, "annoList");
-			// } else {
-				// updateProcedure.run();
-			// }
-			
-			
-			//TODO: update with posturl
+		
+			var params = stripExcessJSONData(CONFIGS.annotationLists[curAnoListIndex]);
+			posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+			ajaxRequestQueue.push({ url : posturl, index : curAnoListIndex});
+
 		};
 		
-		
+		/*
+		*Loops through and updates all the annotationLists to the server
+		*/
 		var updateAllAnnotationLists = function () {
 			if (CONFIGS.annotationLists.length === 0) {
 				updateProcedure.run();
@@ -1462,19 +1340,14 @@
 			} else {
 				updateProcedure.run();
 			}
-			
-			
-			// requestAjax();
 		};
 		
+		/*Gets the JSON on the server associated with the @id given
+		*Unused; used for testing
+		*/
 		var updateLocalAnnotationJSON = function () {
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].needsLocalUpdate) {
-					// var params = completedPaths[i].JSON;
-					// var annoPointer = { "@id" : null };
-					// annoPointer["@id"] = completedPaths[i].annoId;
-					// var params = JSON.stringify(annoPointer);
-					// var posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
 					posturl = completedPaths[i].annoId;
 					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
@@ -1486,6 +1359,9 @@
 			}
 		};
 		
+		/*Gets the JSON on the server associated with the @id given
+		*Unused; used for testing
+		*/
 		var updateLocalAnnotationListsJSON = function () {
 			if (CONFIGS.annotationLists.length === 0) {
 				updateProcedure.run();
@@ -1499,34 +1375,13 @@
 			execAjax(ajaxRequestQueue.shift(),"annoListLocal");
 		};
 		
+		/*
+		*Updates the new annotationList to the server
+		*/
 		var updateNewAnnotationList = function () {
 			var params, posturl;
-			// for (var i = 0; i < completedPaths.length; i++) {
-				// if (completedPaths[i].annoListIndex === -1) {
-					// var annoIsInList = false;
-					// for (var j = 0; j < CONFIGS.newAnnotationList["resources"].length; j++) {
-						// if (CONFIGS.newAnnotationList["resources"][j]["@id"] === completedPaths[i].annoId) {
-							// annoIsInList = true;
-						// }
-					// }
-					// if (!annoIsInList) {
-						// var anoPointer = $.extend(true, {}, dummyAnnoPointer);
-						// anoPointer["@id"] = completedPaths[i].annoId;
-						// CONFIGS.newAnnotationList["resources"].push(anoPointer);
-					// }
-				// }
-			// }
-			// console.log(CONFIGS.newAnnotationList);
-			
-			//TODO: may need to consolidate this if both cases work
-			// if (CONFIGS.newAnnotationList.hasOwnProperty("@id")) {
-				// // params = JSON.stringify({ "@id" : CONFIGS.newAnnotationList["@id"] });
-				// params = JSON.stringify(CONFIGS.newAnnotationList);
-				// posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
-				// execAjax({ url : posturl }, "newAnnoList");
-			// } else {
-				
-				
+
+			//Add all annotations without an annotationList to this new list (if an annoList didnt exist)
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i].annoIndex === -1) {
 					//set index to where the new annotation list will be
@@ -1548,9 +1403,11 @@
 			} else {
 				updateProcedure.run();
 			}
-			// }
 		};
 		
+		/*Gets the annotationList data from the server based on @id
+		*Unused; used for testing
+		*/
 		var updateLocalNewAnnotationListJSON = function () {
 			if (CONFIGS.newAnnotationList != null && CONFIGS.newAnnotationList["resources"].length > 0) {
 				var posturl = CONFIGS.newAnnotationList["@id"];
@@ -1560,9 +1417,14 @@
 			}
 		};
 		
+		/*
+		*Updates the sc:Canvas data to hold annotations
+		*Creates a new canvas on the server if we are using a dummy canvas
+		*/
 		var updateCanvas = function () {
 			var params, posturl;
 			if (CONFIGS.canvasData.hasOwnProperty("@id")) {
+				//If the dummyCanvas id was found, get ready to post it to the server instead
 				if (CONFIGS.canvasData["@id"] === "http://www.example.org/dummy/canvas/") {
 					CONFIGS.canvasData["@id"] = null;
 				}
@@ -1570,6 +1432,7 @@
 			
 			var annoLists = $.extend(true, [], CONFIGS.annotationLists);
 			
+			//Add all annotationLists to the sc:Canvas
 			CONFIGS.canvasData["otherContent"] = annoLists;
 			
 			params = stripExcessJSONData(CONFIGS.canvasData);
@@ -1584,7 +1447,10 @@
 			
 		};
 		
-		//TODO: maybe make this support redo
+		/*
+		*Rolls back the canvas to the previous undo state
+		*Unused; can be used in future
+		*/
 		var execUndo = function () {
 			if (undoList.length < 1) {
 				return;
@@ -1604,6 +1470,9 @@
 			
 		};
 		
+		/*
+		*Updates the indices of the anchorLists so they match in their annotationLists
+		*/
 		var updateAnnotationListIndices = function () {
 			for (var i = 0; i < CONFIGS.annotationLists.length; i++) {
 				for (var j = 0; j < CONFIGS.annotationLists[i]["resources"].length; j++) {
@@ -1616,15 +1485,22 @@
 				}
 			}
 		};
-		
-	var removeMarkedDeletedPaths = function () {
-		for (var i = completedPaths.length - 1; i > -1; i--) {
-			if (completedPaths[i].markedForDelete) {
-				completedPaths.splice(i, 1);
+	
+		/*
+		*Removes all the anchorLists that were marked from deletion from completedPaths
+		*/
+		var removeMarkedDeletedPaths = function () {
+			for (var i = completedPaths.length - 1; i > -1; i--) {
+				if (completedPaths[i].markedForDelete) {
+					completedPaths.splice(i, 1);
+				}
 			}
-		}
-	};
+		};
 		
+		/*
+		*Converts the points to the current canvas size 
+		* @param ar - the array of converted numbers
+		*/
 		var convertToAdjustedDimensions = function (ar) {
 			for (var i = 0; i < ar.length; i++) {
 				if (typeof ar[i] === "number") {
@@ -1636,6 +1512,9 @@
 			return ar;
 		};
 		
+		/*Converts the points to the sc:Canvas native size
+		* @param ar - the array of converted numbers
+		*/
 		var convertToNativeDimensions = function (ar) {
 			for (var i = 0; i < ar.length; i++) {
 				if (typeof ar[i] === "number") {
@@ -1647,8 +1526,9 @@
 			return ar;
 		};
 		
-		//TODO: maybe convert the mouse coordinates to SC coordinates here?
-		//Gets the mouse coordinates on the canvas
+		/*
+		*Get the mouse position relative to the <canvas> area
+		*/
 		this.getMousePos = function(evt) {
 			var rect = imgCanvas.getBoundingClientRect();
 			var tempX = Math.floor((evt.clientX - rect.left)/(rect.right-rect.left)*imgCanvas.width);
@@ -1666,41 +1546,46 @@
 			}
 		};	
 
-		//Called on mousemove
+		/*
+		*Callback for mousemove, updating mPos mouse position object and saving previous mPos
+		*/
 		var moveCallback = function (e) {
 			prevmPos = mPos;
 			mPos = self.getMousePos(e);
-			// console.log(mPos);
 		};
 		
-		//TODO: rename this, or expand for each mode...
-		//Draws the mouse pointer indicator
+		/*
+		*Draws the mouse pointer indicator
+		* @param x, y - the x and y coordinates
+		*/
 		var drawIndicator = function (x, y) {
+			//Use current mouse position if no params sent in
 			if (x == null && y == null) {
 				x = mPos.x;
 				y = mPos.y;
 			}
 			
 			intCx.beginPath();
-			//TODO: make this permanent before calls 
 			intCx.lineWidth = CONFIGS.feedback.lineWidth;
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
 
-			//TODO: make the radius editable.
+			//Draw a circle around the mouse position
 			intCx.arc(x, y, CONFIGS.snapZone, 0, 360);
 			intCx.stroke();
 			
 		};
 		
-		//Draws the next line in the path being created
+		/*
+		*Draws the line that the indicator shows
+		*This connects the nth point to the mouse current point in the path being drawn
+		*/
 		var continuePath = function () {
 			if (anchorList.length > 1) {
 				anoCx.beginPath();
 				anoCx.lineWidth = CONFIGS.anno.lineWidth;
-				console.log(anoCx.lineWidth);
-				console.log(CONFIGS.anno.lineWidth);
 				anoCx.strokeStyle = CONFIGS.anno.strokeStyle;
 				anoCx.lineCap = CONFIGS.anno.lineCap;
+				//Use n-1 and n points since the point at mPos on click was already pushed
 				anoCx.moveTo(
 					anchorList.x[anchorList.length-2], 
 					anchorList.y[anchorList.length-2]
@@ -1714,16 +1599,14 @@
 			}
 		};
 		
-		//TODO: setup so user can choose to close path
-		/*
-		ends the path only if it can be ended.
-		This means that we have 3 anchors minimum
-		Path is ended by connecting final and first anchors
+		/*Ends the drawing of the current path/shape
+		*If the shape doesnt have enough points, it doesnt fire.
 		*/
 		var endPath = function () {
 			
 			if (anchorList.length > 2) {
 				anoCx.beginPath();
+				//Use 1st point and connect it to the nth points
 				anoCx.moveTo(
 					anchorList.x[0],
 					anchorList.y[0]
@@ -1734,32 +1617,34 @@
 				);
 				anoCx.stroke();
 				
+				//Push a duplicate so the JSON can save this shape as a closed shape correctly
 				anchorList.push(anchorList.x[0], anchorList.y[0]);
-				console.log(tool.MODE);
+				
+				//Write associated data
 				anchorList.type = tool.MODE;
-				console.log(anchorList.type);
 				anchorList.generateJSON();
-				console.log(anchorList);
 				anchorList.needsUpdate = true;
 				anchorList.strokeStyle = CONFIGS.anno.strokeStyle;
 				anchorList.lineWidth = CONFIGS.anno.lineWidth;
-				// completedPaths.push(clone(anchorList));
+				//Push it to completedPaths
 				var an = $.extend(true, {}, anchorList);
 				completedPaths.push(an)
-				// createSVGTag(anchorList);
 				anchorList.clear();
-				console.log(completedPaths);
 				$(document).trigger("toolbar_updateAnnotationData");
-				pushUndo();
 			}
 		}
 		
-		//TODO: possibly pass in a set of points from which an event was triggered...
+		/*
+		*Pushes the current mouseposition to the current path
+		*/
 		var addAnchor = function () {
 			anchorList.push(mPos.x, mPos.y);
 		};
 
-		//Checks to see if we are near an anchor
+		/*Check to see if we are near an anchor/point in a path
+		* @param mousePoint - the mouse position sent in
+		* @param anchor - the anchor to compare the mouse position to
+		*/
 		var checkIfNearAnchor = function (mousePoint, anchor) {
 			//Bounding box around the anchor
 			var anchorBox = {
@@ -1780,16 +1665,13 @@
 				return false;
 			}
 		};
-		
-		//TODO: fill this in for display...
-		var displayJSON = function () {
-			
-		};
-		
+	
+		/*Creates an HTML5 SVG tag string
+		* @param - rawAnchors - the anchors passed in by reference
+		* @return - the SVG string
+		*/
 		var createSVGTag = function (rawAnchors) {
-			//Not sure if we need this width/height
-			//TODO: possibly set width/height to SC dims
-			//TODO: convert points to relative width/height of SC
+			
 			var anchors = $.extend(true, {}, rawAnchors);
 			anchors.x = convertToNativeDimensions(anchors.x);
 			anchors.y = convertToNativeDimensions(anchors.y);
@@ -1804,18 +1686,18 @@
 				str += anchors.x[i] + "," + anchors.y[i] + " ";
 			}
 			str += "\"";
-			// str += "style=\"" + svgLineWidth + svgStrokeColor + svgFillStyle + "\"";
 			str += " />"
 			str += svgSuffix;
 			svgTags.push(str);
 			var svg = $(str);
 			
 			
-			console.log(svgTags);
-			console.log(svg.get(0));
 			return str;
 		};
 		
+		/*Read an SVG tag and draw it
+		*Unused; used for testing
+		*/
 		var readSVGTag = function (tag) {
 			var $tag = $.parseHTML(tag);
 						
@@ -1830,6 +1712,10 @@
 			anchorList.clear();
 		};
 		
+		/*Strips all JSON properties that conflict on the server during update
+		* @param json - the json object or string to edit
+		* @return - stringified JSON
+		*/
 		var stripExcessJSONData = function (json) {
 			if (typeof json === "string") {
 				json = JSON.parse(json);
@@ -1850,49 +1736,10 @@
 			return JSON.stringify(json);
 		};
 		
-		
-		//put more shared params here if needed
-		//TODO: find a more elegant way of doing this...
-		var resetSharedParams = function () {
-			isInSnapZone = false;
-		};
-
-		//Deep clones an object (special thanks to stackoverflow community)
-		var clone = function(obj) {
-			var copy;
-
-			// Handle the 3 simple types, and null or undefined
-			if (null == obj || "object" != typeof obj) return obj;
-
-			// Handle Date
-			if (obj instanceof Date) {
-				copy = new Date();
-				copy.setTime(obj.getTime());
-				return copy;
-			}
-
-			// Handle Array
-			if (obj instanceof Array) {
-				copy = [];
-				for (var i = 0, len = obj.length; i < len; i++) {
-					copy[i] = clone(obj[i]);
-				}
-				return copy;
-			}
-
-			// Handle Object
-			if (obj instanceof Object) {
-				copy = {};
-				for (var attr in obj) {
-					if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
-				}
-				return copy;
-			}
-
-			throw new Error("Unable to copy obj! Its type isn't supported.");
-
-		};
-		
+		/*Get the index of the passed in completedPath
+		* @param path - the anchorList to evaluate
+		* @return - the index found
+		*/
 		var getCompletedPathsIndex = function (path) {
 			for (var i = 0; i < completedPaths.length; i++) {
 				if (completedPaths[i] === path) {
@@ -1902,16 +1749,25 @@
 		};
 
 	
-		//Checks if the user clicked inside a completed annotation during edit mode (selected a shaoe)
+		/*Checks if the user clicked inside a completed annotation during edit mode (selected a shaoe)
+		* @param curPath - the anchorList to be eval
+		* @param - mPosCur - the mouse position at the time user clicked in EDIT mode
+		* @param - index - the index of the anchorList in completedPaths
+		*/
 		var checkIfInAnnoBounds = function (curPath, mPosCur, index) {
+			//If its inside the bounding box of the anchorList
 			if (curPath.leftmost < mPosCur.x && mPosCur.x < curPath.rightmost && curPath.topmost < mPosCur.y && mPosCur.y < curPath.bottommost) {
+				//Copy the anchorList to selectedPaths
 				var p = $.extend(true, {}, curPath);
 				selectedPaths.push( { path : p, compIndex : index } );
+				//we have selected a path
 				isInSelectedAnno = true;
 			};
 		};
 
-		//Finds the smallest path that was selected in edit mode
+		/*Finds the smallest path that was selected in edit mode
+		*@return - the selectedPath that was the smallest bounding box
+		*/
 		var findSmallestSelectedPath = function () {
 			var smallestIndex = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
@@ -1923,23 +1779,29 @@
 			return selectedPaths[smallestIndex];
 		};
 		
-		//Redraws the completed shape on the interaction canvas for editing
+		/*Redraws the completed shape on the interaction canvas for editing
+		*/
 		var drawSelectedPathIndicator = function () {
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			drawPathIndicator(selectedPath);
 		};
 		
+		/*
+		*Draws the path on the interaction canvas
+		*/
 		var drawPathIndicator = function (path) {
 			if (path == null) {
 				return;
 			}
 			intCx.strokeStyle = CONFIGS.feedback.strokeStyle;
+			//draw circles around the anchors in this list
 			for (var i = 0; i < path.length; i++) {
 				intCx.beginPath();
 				intCx.arc(path.x[i], path.y[i], CONFIGS.snapZone, 0, 360);
 				intCx.stroke();
 			}
 			
+			//draw the path
 			intCx.beginPath();
 			intCx.moveTo(path.x[0], path.y[0]);
 			for (var i = 1; i < path.length; i++) {
@@ -1948,9 +1810,9 @@
 			intCx.stroke();
 		};
 			
-		//Draws a given path in its entirety
+		/*Draws a given path in its entirety to the annotation canvas
+		*/
 		var drawPath = function (path) {
-			//unsavedChanges = true;
 			anoCx.strokeStyle = path.strokeStyle;
 			anoCx.lineWidth = path.lineWidth;
 			anoCx.beginPath();
@@ -1961,7 +1823,9 @@
 			anoCx.stroke();
 		};
 		
-		//Updates all the anchors on an edited path, and their bounding box
+		/*Updates all the anchors on an edited path, and their bounding box
+		* @param md - the displacement between the mouse position and the previous mouse position
+		*/
 		var updateSelectedPath = function (md) {
 			var cur = selectedPathsCurIndex;
 			for (var i = 0; i < selectedPaths[cur].path.length; i++) {
@@ -1974,20 +1838,20 @@
 			selectedPaths[cur].path.bottommost -= md.y;	
 		};
 
-		//Updates the completedPaths based on the corresponding selectedPaths
+		/*Updates the completedPaths based on the corresponding selectedPaths
+		*/
 		var updateCompletedPaths = function () {
 			var curInd = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				console.log(selectedPaths[i].path);
 				curInd = selectedPaths[i].compIndex;
-				// completedPaths[curInd] = clone(selectedPaths[i].path);
 				var p = $.extend(true, {}, selectedPaths[i].path);
 				completedPaths[curInd] = p;
-				// CONFIGS.anno.lineWidth = selectedPaths[i].lineWidth;
-				// CONFIGS.anno.strokeStyle = selectedPaths[i].strokeStyle;
 			}
 		};
 		
+		/*Remove the anchorList from the completedPaths on delete
+		* @param - ind - the index of the anchorList
+		*/
 		var removeFromCompletedPaths = function (ind) {
 			if (completedPaths[ind].annoId != null) {
 				annoDeleteQueue.push(completedPaths[ind].annoId);
@@ -1995,33 +1859,37 @@
 			completedPaths.splice(ind, 1);
 		};
 		
-		//Updates a single anchor in selectedPaths
+		/*Updates a single anchor in selectedPaths
+		* @param md - mouse displacement between current mPos and previous
+		*/
 		var updateSelectedAnchor = function (md) {
 			switch (selectedPaths[selectedPathsCurIndex].path.type) {
+				//We only edit one point on polygon, so just update that one
 				case "POLY":
 					selectedPaths[selectedPathsCurIndex].path.x[selectedPathsAnchorIndex] -= md.x;
 					selectedPaths[selectedPathsCurIndex].path.y[selectedPathsAnchorIndex] -= md.y;
 					break;
+				//In a rectangle, we cant physically edit one point, we have to edit three
 				case "RECT":
-					console.log(selectedPaths[selectedPathsCurIndex].path.length);
+					//current anchorList, current index in x,y, two adjacent indices in x,y
 					var curInd, curIndA, adjacentIndA, adjacentIndA2;
-					var Yfirst;
 					curInd = selectedPathsCurIndex;
 					curIndA = selectedPathsAnchorIndex;
+					//This will always get the n-1 and n+1 points from nth (current) point
 					adjacentIndA = (curIndA + 1) % 4;
 					adjacentIndA2 = (curIndA + 3) % 4;
 					
 					
-					
+					//if cur and cur + 1 points are above (vertical to) each other...
 					if (selectedPaths[curInd].path.x[curIndA] === selectedPaths[curInd].path.x[adjacentIndA]) {
-						// Yfirst = true;
 						selectedPaths[curInd].path.x[adjacentIndA] -= md.x;
 						selectedPaths[curInd].path.y[adjacentIndA2] -= md.y;
+					//if cur and cur + 1 are horizontal to each other...
 					} else {
 						selectedPaths[curInd].path.y[adjacentIndA] -= md.y;
 						selectedPaths[curInd].path.x[adjacentIndA2] -= md.x;
-						// Yfirst = false;
 					}
+					//update cur point normally
 					selectedPaths[curInd].path.x[curIndA] -= md.x;
 					selectedPaths[curInd].path.y[curIndA] -= md.y;
 					
@@ -2031,20 +1899,23 @@
 			selectedPaths[selectedPathsCurIndex].path.generateBounds();
 		};
 
-		//Draws the connecting edges to an anchor that is selected
+		/*Draws the connecting edges to an anchor that is selected
+		*/
 		var drawSelectedAdjacentEdgesIndicator = function () {
 			var path = selectedPaths[selectedPathsCurIndex].path;
 			var anchInd = selectedPathsAnchorIndex;
 			var lastInd = path.length - 1;
 			
 			intCx.beginPath();
+			//Skip duplicate point
 			if (anchInd === 0) {
-				// var lastA = path.x.length - 1;
 				intCx.moveTo(path.x[lastInd], path.y[lastInd]);
 			} else {
 				intCx.moveTo(path.x[anchInd - 1], path.y[anchInd - 1]);
 			}
+			//Draw line to anchor we are moving
 			intCx.lineTo(path.x[anchInd], path.y[anchInd]);
+			//Skip duplicate
 			if (anchInd === (lastInd)) {
 				intCx.lineTo(path.x[0], path.y[0]);
 			} else {
@@ -2058,14 +1929,14 @@
 			CONFIGS.snapZone = val;
 		};
 		
-
 		//Changes lineWidth in CONFIGS
 		var changeLineWidth = function(val) {
 			CONFIGS.anno.lineWidth = val;
-			//CONFIGS.feedback.lineWidth = val;
 		};
 		
-		
+		/*Changes the line color on annotation canvas
+		* @param lineColor - the string of the color to be changed to
+		*/
 		var changeLineColor = function(lineColor) {
 			if (CONFIGS.feedback.strokeStyle === "black"){
 				CONFIGS.feedback.strokeStyle = "red";
@@ -2088,10 +1959,6 @@
 					CONFIGS.anno.strokeStyle = "blue";
 					break;
 					
-				/*case "purple":
-					CONFIGS.anno.strokeStyle = "purple";
-					break;*/
-					
 				case  "white":
 					CONFIGS.anno.strokeStyle = "white";
 					break;
@@ -2102,15 +1969,16 @@
 			}
 		};
 		
+		/*Changes the color of the lines on the interaction canvas
+		* @param indicatorColor - the string of color to be changed to
+		*/
 		var changeIndicatorColor = function(indicatorColor){
-			console.log("IndicatorCheckpoint");
 			switch(indicatorColor){
 				case "red":
 					CONFIGS.feedback.strokeStyle = "red";
 					break;
 				
 				case "yellow":
-					console.log("Checkpoint yellow");
 					CONFIGS.feedback.strokeStyle = "yellow";
 					break;
 				
@@ -2121,10 +1989,6 @@
 				case "blue":
 					CONFIGS.feedback.strokeStyle = "blue";
 					break;
-					
-				/*case "purple":
-					CONFIGS.feedback.strokeStyle = "purple";
-					break;*/
 					
 				case  "white":
 					CONFIGS.feedback.strokeStyle = "white";
@@ -2137,48 +2001,46 @@
 			
 		};
 		
-		//Saves the changes made to an annotation during edit mode
+		/*Saves the changes made to an annotation during edit mode
+		*This updates the completedPaths with the changes and then reflects it on the canvas
+		*/
 		var saveEditChanges = function () {
+			//Nothing to save...
 			if (selectedPaths.length < 1) {
 				return;
 			}
-			
+			//Clear interaction canvas
 			$(document).trigger("handler_canvasIntClear");
 			
+			//If we edited an anchor, we have to add the duplicate back in
 			if (isAnchorSelected) {
 				addLastAnchor(selectedPaths[selectedPathsCurIndex].path);
 			};
+			
+			//anchorList and index associated in completedPaths 
 			var selectedPath = selectedPaths[selectedPathsCurIndex].path;
 			var selectedPathCompletedIndex = selectedPaths[selectedPathsCurIndex].compIndex;
 			
+			//flag for update
 			selectedPaths[selectedPathsCurIndex].path.needsUpdate = true;
 			
+			//Update the completedPaths with the selectedPaths
 			updateCompletedPaths();
+			//Draw all completedPaths again
 			redrawCompletedPaths();
 			
-			// for (var i = 0; i < selectedPaths.length; i++) {
-				// drawPath(selectedPaths[i].path);
-			// }
-			// drawPath(selectedPath);
-			
+			//generate JSON flagged for update
 			updateJSON();
-			// $(document).trigger("handler_resetAnnoUpdateStatus");
+			//Remove highlight from the annotation item in the toolbar, then update these items
 			$(document).trigger("toolbar_annoItemsDeHighlight");
 			$(document).trigger("toolbar_updateAnnotationData");
-			pushUndo();
-			
-			selectedPathsCurIndex = 0;
-			selectedPathsAnchorIndex = null;
-			selectedPaths = [];
-			isInSelectedAnno = false;
-			isEditingPath = false;
-			isAnchorSelected = false;
-			isShapeMoved = false;
-			unsavedChanges = false;
-			
-			//TODO: update only the associated item in toolbar
+
+			//Reset all the vars associated with edit mode
+			cancelEditChanges();
 		};
 		
+		/*Resets all the vars associated with edit mode
+		*/
 		var cancelEditChanges = function () {
 			$(document).trigger("handler_canvasIntClear");
 			selectedPathsCurIndex = 0;
@@ -2188,49 +2050,38 @@
 			isEditingPath = false;
 			isAnchorSelected = false;
 			isShapeMoved = false;
-			unsavedChanges = false;
 		};
 
-		//Redraw all the shapes that were not edited
+		/*Redraw all the anchorList paths
+		*/
 		var redrawCompletedPaths = function () {
 			$(document).trigger("handler_canvasAnoClear");
-			// var skipPath = false;
 			for (var i = 0; i < completedPaths.length; i++) {
-				// for (var j = 0; j < selectedPaths.length; j++) {
-					// if (selectedPaths[j].compIndex === i) {
-						// skipPath = true;
-					// }
-				// }
-				// if (!skipPath) {
-					// var currentLineWidth = CONFIGS.anno.lineWidth;
-					// var currentStrokeStyle = CONFIGS.anno.strokeStyle;
-					// //CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
-					// //CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
-					// drawPath(completedPaths[i]);
-					// //CONFIGS.anno.lineWidth = currentLineWidth;
-					// //CONFIGS.anno.strokeStyle = currentStrokeStyle;
-				// }
-				// skipPath = false;
 				drawPath(completedPaths[i]);
 			}
-			// $(document).trigger("toolbar_updateAnnotationData");
 		};
 		
-		//Sorts selected list of shapes by bounding box area
+		/*Sorts selected list of shapes by bounding box area
+		* @param list - the selectedPaths passed in (can be used generically)
+		*/
 		var sortSelectedBBAscending = function (list) {
 			var newList = [];
 			var smallestInd = 0;
 			var curInd = 1;
 			var temp;
 			while (list.length > 1) {
+				//Of the remaining list items, find the smallest one
 				if (list[smallestInd].path.getBoundingBoxArea() > list[curInd].path.getBoundingBoxArea()) {
 					smallestInd = curInd;
 				}
 				
 				curInd++;
 				
+				//Once we reach the end of the passed in list
 				if (curInd === list.length) {
+					//Remove the item from the passed in list
 					temp = list.splice(smallestInd, 1);
+					//Push it in the new list (ascending)
 					newList.push(temp[0]);
 					smallestInd = 0;
 					curInd = 1;
@@ -2244,7 +2095,8 @@
 			
 		};
 
-		//Check if the next click was near an anchor's snapZone in a selected path
+		/*Check if the next click was near an anchor's snapZone in a selected path
+		*/
 		var checkSelectedPathAnchors = function () {
 			var mousePoint = mPos;
 			var path = selectedPaths[selectedPathsCurIndex].path;
@@ -2254,9 +2106,8 @@
 					y : path.y[i]
 				};
 				if (checkIfNearAnchor(mousePoint, anchor)) {
-
-				//TODO: set up list of selected points
 					isAnchorSelected = true;
+					//Skip the duplicate
 					if (i === (path.length - 1)) {
 						selectedPathsAnchorIndex = 0;
 					} else {
@@ -2266,22 +2117,25 @@
 			}
 		};
 
-		//Removes the last point so we dont start editing it if it is a duplicate of first
+		/*Removes the last point so we dont start editing it if it is a duplicate of first
+		*/
 		var removeLastAnchorIfDuplicate = function (path) {
 			if (path.x[0] === path.x[path.length - 1]
 			&& path.y[0] === path.y[path.length - 1]) {
 				path.removeLast();
 			}
-
 		};
 		
-		//Add the last anchor as a duplicate of the first one for SVG
+		/*Add the last anchor as a duplicate of the first one
+		*/
 		var addLastAnchor = function (path) {
 			var pointX = path.x[0];
 			var pointY = path.y[0];
 			path.push(pointX, pointY);
 		};
 		
+		/*Getter for completedPaths
+		*/
 		self.getCompletedPaths = function () {
 			return completedPaths;
 		};
@@ -2291,6 +2145,8 @@
 		tool.EDIT = Object.create(null);
 		tool.RECT = Object.create(null);
 		
+		/*Mousemove handler for POLY mode
+		*/
 		tool.POLY.mousemove = function (e) {
 			$(document).trigger("handler_canvasIntClear");
 			
@@ -2329,19 +2185,23 @@
 			}
 		};
 		
+		/*click handler for POLY mode
+		*/
 		tool.POLY.click = function (e) {
+			//If we are in the snap zone for the first point, close the path
 			if (isInSnapZone) {
 				endPath();
-				unsavedChanges = false;
+			//Else, add the anchor to the cur anchorList and draw it to annotation canvas
 			} else {
 				addAnchor();
 				continuePath();
 				unsavedChanges = true;
 				unsavedChangesDisplay();
-				//console.log(anchorList);
 			}
 		};
 		
+		/*Reset unsaved changes from uncompleted path
+		*/
 		tool.POLY.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
 			$(document).trigger("handler_canvasAnoClear");
@@ -2349,52 +2209,55 @@
 			redrawCompletedPaths();
 		};
 		
+		/*mousemove handler for EDIT mode
+		*/
 		tool.EDIT.mousemove = function (e) {
-			// console.log(isAnchorSelected);
-			// console.log(prevmPos);
+			
+			//if prevmPos wasnt set to null when mouse position went off canvas
 			if (prevmPos != null && prevmPos.x != null && prevmPos.y != null) {
 				var md = { x : prevmPos.x - mPos.x, y : prevmPos.y - mPos.y };
+			//If it was, just set it to the last mPos
 			} else {
 				md = mPos;
 			}
-			if (md.x === 0 && md.y === 0) {
-				console.log("prevented mousemove");
-			}
-			// console.log(md);
-			// console.log(isMouseDown);
+		
+			//If the mouse is down, we selected a shape, and we didnt select an anchor on that shape
 			if (isMouseDown && isInSelectedAnno && !isAnchorSelected) {
-				console.trace("updateing shape");
 				//change from previous mouse move to current on each mousemove
 				$(document).trigger("handler_canvasIntClear");
+				//Update the current selected path with the mouse displacement
 				updateSelectedPath(md);
 				drawSelectedPathIndicator();
 				isShapeMoved = true;
+			//Else if the mouse is down and we did click an anchor after selecting a shape
 			} else if (isMouseDown && isAnchorSelected) {
-				console.log("EDITING ANCHOR");
 				$(document).trigger("handler_canvasIntClear");
 				updateSelectedAnchor(md);
+				//Draws only the edges connected to the selected point
 				drawSelectedAdjacentEdgesIndicator();
 			}
 		};
 		
-		//TODO: probably need to separate these or make better conditions...
+		/*Click handler for EDIT mode
+		*/
 		tool.EDIT.click = function (e, data) {
+			//Was a path passed in from the toolbar?
 			var pathChosen = false;
+			//If a specific path was passed in by clicking an annotation in the sidebar
 			if (data != null) {
+				//Reset any edit changes before save
 				cancelEditChanges();
 				pathChosen = true;
 				var cInd = getCompletedPathsIndex(data);
 				isInSelectedAnno = true;
+				//We know this path is selected so just push it
 				selectedPaths.push( { path : data, compIndex : cInd } );
 			}
 			
-			// selectedPaths = [];
-			if (!isEditingPath) {
-				//console.log(completedPaths);
-				//console.log(tool.MODE);
-				console.log("Detected Shape!!");
-				
+			//If we clicked once and found a shape
+			if (!isEditingPath) {				
 				if (!pathChosen) {
+					//Have to find if this click hit an object
 					var mPosCur = mPos;
 					
 					for (var i = 0; i < completedPaths.length; i++) {
@@ -2402,55 +2265,49 @@
 					}
 				}
 				
+				//If we did select a shape
 				if (selectedPaths.length > 0) {
+					//Sort by bounding box so we clicked the smallest overlapping shape
 					sortSelectedBBAscending(selectedPaths);
-					console.log("Completed Sort.");
-					console.log(selectedPaths);
 					selectedPathsCurIndex = 0;
+					//Highlight the annotation in the toolbar associated with this shape
 					$(document).trigger("toolbar_annoItemHighlight", [selectedPaths[selectedPathsCurIndex].compIndex]);
 				} else {
 					return;
 				}
 				isEditingPath = true;
 				unsavedChanges = true;
-				unsavedChangesDisplay();
-				//console.log(selectedPaths);
-				
-				
+				unsavedChangesDisplay();				
 				drawSelectedPathIndicator();
-				
-				//console.log(selectedPaths);
-			} else if (!isAnchorSelected && isEditingPath && !isShapeMoved)  {
-				console.log("Attempting to edit ANCHOR!!");
+			//Else if we already selected a shape but it hasnt moved and we didnt already do this,
+			} else if (!isAnchorSelected && isEditingPath && !isShapeMoved) {
+				//Check if we area near an anchor in the selected path during this click
 				checkSelectedPathAnchors();
 				if (isAnchorSelected) {
 					$(document).trigger("handler_canvasIntClear");
-					//We remove the last point so we dont mess with the duplicate
-					//(the duplicate is the first and last point, used for SVG tag)
-					//TODO: maybe only add the duplicate when saving...
-					console.log(selectedPaths[selectedPathsCurIndex].path);
-					console.log(selectedPaths[selectedPathsCurIndex].path.x[0]);
+					//We remove the last point so we dont mess with the duplicate (may not be needed)
 					removeLastAnchorIfDuplicate(selectedPaths[selectedPathsCurIndex].path);
-					console.log(selectedPaths[selectedPathsCurIndex].path);
-					console.log("Removed last point");
 					drawSelectedAdjacentEdgesIndicator();
 				}
 			}
 		};
 		
-		
+		/*Tab key handler for EDIT mode
+		*/
 		tool.EDIT.tab = function (e) {
 			//this will be used to cycle through overlapping shapes...
 			if (selectedPaths.length < 1) {
 				return;
 			}
 			
+			//If we clicked on a shape in EDIT mode but didnt move it or select an anchor
 			if (!isShapeMoved && !isAnchorSelected) {
 				//do nothing
 			} else {
-				console.log("RETURNING");
 				return;
 			}
+			
+			//Select the next anchorList in the selectedPaths
 			if ( (selectedPathsCurIndex + 1) === selectedPaths.length) {
 				selectedPathsCurIndex = 0;
 			} else {
@@ -2463,47 +2320,41 @@
 			
 		};
 		
+		/*Enter key handler for EDIT mode
+		*/
 		tool.EDIT.enter = function (e) {
 			saveEditChanges();
-			unsavedChanges = false;
 		};
 		
+		/*Delete key handler for EDIT mode
+		*/
 		tool.EDIT.del = function (e) {
 			if (selectedPaths.length === 0) {
 				return;
 			}
-			if (confirm("Are you sure you want to delete the selected annotation?")) {
-				
+			//Ask the user if they really want to delete this annotation
+			if (confirm("Are you sure you want to delete the selected annotation?")) {				
 				//need to keep the anoId so updateProcedure can find and delete it
 				var anoId = selectedPaths[selectedPathsCurIndex].path.annoId;
 				var anoListIndex = selectedPaths[selectedPathsCurIndex].path.annoListIndex;
+				//Wipe out all data except for the previous params so that we cant redraw this or push it to server
 				selectedPaths[selectedPathsCurIndex].path.clear();
 				selectedPaths[selectedPathsCurIndex].path.markedForDelete = true;
 				selectedPaths[selectedPathsCurIndex].path.annoId = anoId;
 				selectedPaths[selectedPathsCurIndex].path.annoListIndex = anoListIndex;
 				
+				//update the new object to completedPaths
 				updateCompletedPaths();
 				
 				$(document).trigger("handler_canvasIntClear");
 				
-				// for (var i = 0; i < selectedPaths.length; i++) {
-					// drawPath(selectedPaths[i].path);
-				// }
-				// drawPath(selectedPath);
-			
-				
 				redrawCompletedPaths();
 				$(document).trigger("toolbar_updateAnnotationData");
 				
+				//Remove this path from the completedPaths
 				removeFromCompletedPaths(selectedPaths[selectedPathsCurIndex].compIndex);
 				
-				selectedPathsCurIndex = 0;
-				selectedPathsAnchorIndex = null;
-				selectedPaths = [];
-				isInSelectedAnno = false;
-				isEditingPath = false;
-				isAnchorSelected = false;
-				isShapeMoved = false;
+				cancelEditChanges();
 			} else {
 				return;
 			}
@@ -2512,45 +2363,44 @@
 		
 		tool.EDIT.reset = function () {
 			cancelEditChanges();
-			unsavedChanges = false;
 		};
 		
+		/*Click handler for RECT mode
+		*/
 		tool.RECT.click = function () {
+			//Start a rectangle
 			if (anchorList.length < 1) {
 				addAnchor();
-				console.log(mPos);
+			//Finish a rectangle
 			} else {
+				//Do some math to create a rectangle from the first point to the current mPos
 				var mPosCur = mPos;
 				var x = anchorList.x[0];
 				var y = anchorList.y[0];
 				anchorList.push(mPosCur.x, y);
-				console.log(mPosCur.x);
-				console.log(y);
 				continuePath();
 				anchorList.push(mPosCur.x, mPosCur.y);
-				console.log(mPosCur.x);
-				console.log(mPosCur.y);
 				continuePath();
 				anchorList.push(x, mPosCur.y);
-				console.log(x);
-				console.log(mPosCur.y);
 				continuePath();
-				// anchorList.push(x, y);
 				endPath();
-				console.log(mPos);
 				unsavedChanges = true;
 				unsavedChangesDisplay();
+
 				$(document).trigger("handler_canvasIntClear");
 				
 			}
 		};
 		
+		/*Mousemove handler for RECT mode
+		*/
 		tool.RECT.mousemove = function () {
 			$(document).trigger("handler_canvasIntClear");
 			drawIndicator();
 			
 			var mPosCur = mPos;
 			
+			//Draw a what the rectangle shape will look like on the interaction canvas
 			if (anchorList.length > 0) {
 				var x = anchorList.x[0];
 				var y = anchorList.y[0];
@@ -2560,12 +2410,12 @@
 				intCx.lineTo(mPosCur.x, mPosCur.y);
 				intCx.lineTo(x, mPosCur.y);
 				intCx.lineTo(x, y);
-				intCx.stroke();
-				
+				intCx.stroke();	
 			}
-			
 		};
 		
+		/*Resets the changes made before save in RECT mode
+		*/
 		tool.RECT.reset = function () {
 			$(document).trigger("handler_canvasIntClear");
 			$(document).trigger("handler_canvasAnoClear");

@@ -1,14 +1,24 @@
+/*
+/*
+ * CanvasHandlerToolbar.js
+ * Author: Ben Beshel, Graison Day
+ * Handler for adding the toolbar that is used to interact with the CanvasHandler
+*/
 
 
 var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
+	//Context for the parent, used for using its functions from here explicitly
 	var chandlerParent = parentContext;
 	
+	//Context for the parser JSONparser, used the same way as above
 	var parser = parserContext;
 	
+	//My own context
 	var self = this;
 	
 	//Option that allows the user to view details about the JSON objects that are created.
+	//Currently unused; used for debug
 	self.OPTIONS = {
 		jsonView : false
 	};
@@ -29,6 +39,20 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
 	
 	//Element that displays the attributes of JSON objects in the canvas
+
+	//Tracks previous MODE defined in CanvasHandler
+	var prevMode = "";	
+	
+	//Current MODE defined in CanvasHandler
+	self.MODE = "";
+	
+	//List of jQuery clickable items put in $jsonDisplayContainer
+	var annoItemList = [];
+		
+	//String for the HTML5 textarea that an annotations data goes in	
+	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
+	
+	//container to hold JSON in debug, or annotations in normal run mode
 	var $jsonContainer = $("<div class='toolbarItem permanent' id='jsonDisplayContainer'></div>");
 	
 	//Div for all elements for the "tools" the user will be using and seeing to help them create annotations.
@@ -52,7 +76,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Button that allows the user to write comments on a previously created annotation (currently not functional).
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
 	
-	//Button that allows the user to undo a previously placed path for an annotation (currently not functional).
+	//Button that allows the user to undo a previously placed path for an annotation. (for future use)
 	//var $newUndoButton = $ ("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
 	//Image that displays the current save state of the canvas. 
@@ -78,10 +102,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $yellowLineColorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
 	var $greenLineColorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
 	var $blueLineColorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
-	//var $purpleLineColorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
 	var $whiteLineColorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
 	var $blackLineColorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
-	var lineColorButtonList = [$redLineColorButton, $yellowLineColorButton, $greenLineColorButton, $blueLineColorButton, /*$purpleLineColorButton,*/ $whiteLineColorButton, $blackLineColorButton];
+	var lineColorButtonList = [$redLineColorButton, $yellowLineColorButton, $greenLineColorButton, $blueLineColorButton, $whiteLineColorButton, $blackLineColorButton];
 
 	//Buttons that control the color of the path that displays where the path of an annotation will be placed if the user clicks their mouse.
 	var $indicatorColorLabel = $("<p class = 'permanent' style = 'text-align:center;'>Indicator Colors</p>");
@@ -89,10 +112,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $yellowIndicatorButton = $("<button class = 'permanent' style= 'padding: 2px 9px';>Yellow</button>");
 	var $greenIndicatorButton = $("<button  class = 'permanent' style= 'padding: 2px 9px';>Green</button>");
 	var $blueIndicatorButton = $("<button   class =' permanent' style= 'padding: 2px 9px';>Blue</button>");
-	//var $purpleIndicatorButton = $("<button class = 'permanent purpleColorButton' style= 'padding: 2px 9px';>Purple</button>");
 	var $whiteIndicatorButton = $("<button  class = 'permanent whiteColorButton' style= 'padding: 2px 9px';>White</button>");
 	var $blackIndicatorButton = $("<button  class = 'permanent blackColorButton' style= 'padding: 2px 9px';>Black</button>");
-	var indicatorButtonList = [$redIndicatorButton, $yellowIndicatorButton, $greenIndicatorButton, $blueIndicatorButton, /*purpleIndicatorButton,*/ $whiteIndicatorButton, $blackIndicatorButton];
+	var indicatorButtonList = [$redIndicatorButton, $yellowIndicatorButton, $greenIndicatorButton, $blueIndicatorButton, $whiteIndicatorButton, $blackIndicatorButton];
 	
 		
 	
@@ -109,6 +131,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Displays the ID of the current canvas.
 	var $canvasIdExpose = $('<textarea readonly class="toolbarItem permanent">!No ID!</textarea>');
 	
+	//This div pops up and appears to block user interaction during save
 	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
 	
 	//Button that allows the user to delete a selected annotation.
@@ -139,6 +162,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				+ chandlerParent.MODE_NAMES[n] + "</option>"
 			);
 		}*/
+		prevMode = self.MODE;
 		
 		$("body").append($saveModal);
 		
@@ -149,10 +173,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$polyButton.addClass("modeButtonPressed");
 		$modeDiv.append($polyButton);
 		$modeDiv.append($rectButton);
-		//$modeDiv.append($circButton);
 		$modeDiv.append($editButton);
-		//$modeDiv.append($annoButton);
-		//$modeDiv.append($newUndoButton);
 		$toolDiv.append($modeDiv);
 		
 		
@@ -181,18 +202,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		for (n in indicatorButtonList){
 			$toolDiv.append(indicatorButtonList[n]);
 		}
-		//TODO: the text only mode doesnt work, readd when fixed
-		// $toolDiv.append($debugViewCheckbox);
 		$debugViewCheckbox.prop('checked', true);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($canvIdLabel);
 		$toolDiv.append($canvasIdExpose);
-	
 		
 		//Mode button iteractions. Each button will change the mode of the toolbar, 
 		//displaying this by undarkening the previous mode button and darkening the current one.
 		$polyButton.on("click", function(){
-			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$polyButton.addClass("modeButtonPressed");
 			$saveEditChanges.addClass("disabled");
@@ -202,7 +219,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});
 		
 		$rectButton.on("click", function(){
-			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$rectButton.addClass("modeButtonPressed");
 			$saveEditChanges.addClass("disabled");
@@ -211,32 +227,15 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			changeCanvasMode("RECT");
 		});
 		
-		/*$circButton.on("click", function(){
-			$(document).trigger("handler_changeSaveStatus");
-			changeCanvasMode("CIRC");
-		});*/
-		
 		$editButton.on("click", function(){
-			//$(document).trigger("handler_changeSaveStatus");
 			$modeDiv.children().removeClass("modeButtonPressed");
 			$editButton.addClass("modeButtonPressed");
 			$annoButtonDiv.children().removeClass("disabled");
 			changeCanvasMode("EDIT");
 		});
 		
-		/*$annoButton.on("click", function(){
-			$(document).trigger("handler_changeSaveStatus");
-			changeCanvasMode("ANNO");
-		});*/
-		
-		/*$newUndoButton.on("click", function(){
-			$(document).trigger("handler_execUndo");
-		});*/
-		
-		
 		//Snap zone interaction. Increases the snap zone going to the right, decreases the snap zone going to the left.
 		$snapZoneSlider.on("change", function () {
-			// chandlerParent.changeSnapZone($snapZoneSlider.val());
 			var val = parseInt($snapZoneSlider.val());
 			$(document).trigger("handler_changeSnapZone", [val]);
 		});
@@ -266,10 +265,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			$(document).trigger("handler_changeLineColor", "blue");
 		});
 		
-		/*$purpleLineColorButton.on("click", function(){
-			$(document).trigger("handler_changeLineColor", "purple");
-		});*/
-		
 		$whiteLineColorButton.on("click", function(){
 			$(document).trigger("handler_changeLineColor", "white");
 		});
@@ -295,10 +290,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$blueIndicatorButton.on("click", function(){
 			$(document).trigger("handler_changeIndicatorColor", "blue");
 		});
-		
-		/*$purpleIndicatorButton.on("click", function(){
-			$(document).trigger("handler_changeIndicatorColor", "purple");
-		});*/
 		
 		$whiteIndicatorButton.on("click", function(){
 			$(document).trigger("handler_changeIndicatorColor", "white");
@@ -346,15 +337,12 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		//Update Annotation Data interaction. Responds to a call to update annotation data.
 		$(document).on("toolbar_updateAnnotationData", function () {
-			console.trace("update anno json display");
 			generateJSONDisplay();
 		});
 
 
 		//Annotation Highlight interaction. Responds to a call to highlight an annotation item.
 		$(document).on("toolbar_annoItemHighlight", function (e, annoIndex) {
-			console.log(annoIndex);
-			console.log(annoItemList);
 			annoItemHighlight(annoItemList[annoIndex]);
 		});
 		
@@ -371,7 +359,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		});
 		
 		
-		//
+		//Removes the modal on the end of save
 		$(document).on("toolbar_saveChangesComplete", function () {
 			$saveModal.removeClass("modal-active");
 		});
@@ -386,26 +374,18 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			updateJSONDisplay();
 			return;
 		}
-		// $jsonDisplay.val("");
-		// var string = "";
-		// var annos = chandlerParent.getCompletedPaths();
-		// for (var i = 0; i < annos.length; i++) {
-			// if (annos[i].JSON != null) {
-				// string += JSON.stringify(annos[i].JSON);
-			// }
-		// }
-		// $jsonDisplay.val(string);
 		$jsonContainer.empty();
 		annoItemList = [];
 		var div;
 		//Takes the paths of the completed annotation.
 		var annos = chandlerParent.getCompletedPaths();
 		if (self.OPTIONS.jsonView) {
-			//Debug mode is not on. Program will not display attributes of the JSON objects.
+			//Debug mode is on,  display attributes of the JSON objects.
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null) {
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
+					//Make the text safe to put in html
 					x = x.replace(/\\"/g, '"');
 					div.html(x);
 					console.log(annos[i].JSON);
@@ -416,15 +396,17 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 			}
 		} else {
-			//Allows the user to view attributes of the JSON objects
+			//Allows the user to view comment attributes of the annotations
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null) {
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
+					//Make the text safe to put in html
 					x = x.replace(/\\"/g, '"');
+					//Get an object with text that came from annotation, if any
 					var comments = parser.getAssociatedAnnoText(annos[i].JSON);
-					console.log(comments);
 					
+					//Create the string with the comments
 					var hts = "";
 					if (comments["label"] != null) {
 						hts += "LABEL: " + comments["label"];
@@ -442,6 +424,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 						hts = "(No text)";
 					}
 					div.html(hts);
+					//Helps keep track of the comments on the annotation for events
 					div.editable = comments;
 					div.path = annos[i];
 					setupAnnoEvents(div);
@@ -458,12 +441,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		var div;
 		var annos = chandlerParent.getCompletedPaths();
 		if (self.OPTIONS.jsonView) {
-		//Debug mode is off. Attributes of JSON objects will not be displayed.
+		//Debug mode is on, JSON objects will be displayed.
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					// if (i !== annos.length - 1 && annos.length > annoItemList.length) {
-						// $(annoItemList[i]).remove();
-					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
 					x = x.replace(/\\"/g, '"');
@@ -480,25 +460,24 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 			}
 		} else {
-			//Debug mode is on. Attributes of JSON objects will be displayed.
+			//Update any annotations in toolbar that need update
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					// if (i !== annos.length - 1 > annoItemList.length) {
-						// $(annoItemList[i]).remove();
-					// }
 					div = $(jsonItemString);
 					var x = annos[i].JSON;
+					//Make string safe for html
 					x = x.replace(/\\"/g, '"');
+					//Was there any new text to display?
 					if (annos[i].hasNewText()) {
 						var comments = { 
 							"label" : annos[i]["label"],
 							"chars" : annos[i]["chars"],
 							"cnt:chars" : annos[i]["cnt:chars"]
 						};
+					//No, so get it from the raw JSON
 					} else {
 						var comments = parser.getAssociatedAnnoText(annos[i].JSON);
 					}
-					console.log(comments);
 					
 					var hts = "";
 					if (comments["label"] != null) {
@@ -519,21 +498,19 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					div.html(hts);
 					div.editable = comments;
 					div.path = annos[i];
-					// setupAnnoEvents(div);
+					//The completedPaths item was already appended here, so update the div
 					if (i < annoItemList.length) {
 						annoItemList[i].editable = comments;
 						annoItemList[i].path = annos[i];
 						annoItemList[i].html(hts);
+					//The completedPaths item needs to be added
 					} else {
 						annoItemList.push(div);
 						$jsonContainer.append(div);
 					}
 				}
-//				else if (annos[i].markedForDelete) {
-					// annoItemList[i].remove();
-					// annoItemList.splice(i, 1);
-				// }
 			}
+			//Now remove any annotations in the toolbar that got deleted already
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].markedForDelete) {
 					annoItemList[i].remove();
@@ -541,7 +518,8 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				}
 			}
 		}
-		
+		//Reset all the handler events for all annotation items in toolbar
+		//Needed to do this because events somehow kept getting lost on some divs.
 		for (var i = 0; i < annoItemList.length; i++) {
 			setupAnnoEvents(annoItemList[i]);
 		}
@@ -560,45 +538,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	};
 	
 	
-	//Changes the view of the toolbar based on the "mode" the the canvas is in.
-	var toolbarModeInit = function () {
-		toolbarClear();
-		switch (self.MODE) {
-			case "POLY":
-				toolbarAppend($snapZoneLabel);
-				toolbarAppend($snapZoneSlider);
-				toolbarAppend($lineWidthLabel);
-				toolbarAppend($lineWidthSlider);
-				break;
-			case "EDIT":
-				toolbarAppend($saveEditChanges);
-				break;
-			case "RECT":
-				toolbarAppend($lineWidthLabel);
-				toolbarAppend($lineWidthSlider);
-				break;
-			/*case "CIRC":
-				toolbarAppend($lineWidthLabel);
-				toolbarAppend($lineWidthSlider);
-				break;
-			case "ANNO":
-				break;*/
-		}
-	};
-	
 	//Changes the "mode" of the canvas.
 	var changeCanvasMode = function (mode) {
 		$(document).trigger("toolbar_changeOperationMode", [self.MODE]);
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
-		// toolbarModeInit();
 	};
 	
 	
 	//Changes the saveStatusImage, if the current saveStatus obtained from the canvasHandler does not match up with the current image.
 	var changeSaveStatus = function(unsavedChange) {
-		//$toolDiv.detach($saveStatusImage);
-		//console.log("Checkpoint");
 		if (!unsavedChange){
 			saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 		}
@@ -628,10 +577,11 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		var isChars = false;
 		for (var n in div.editable) {
 			if (div.editable[n] != null) {
-				//If there are no characters, add some.
+				//If there are characters, add some.
 				isChars = true;
 				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
 				var $textBox = $("<textarea class='toolbarAnnoTextItem'>" + div.editable[n] + "</textarea>");
+				//When clicking off the textarea, we update the text to the completedPaths
 				$textBox.on("focusout", function () {
 					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, n, $textBox.val()]);
 					updateJSONDisplay();
@@ -640,6 +590,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 				$textDiv.append($textBox);
 				
 			} else {
+				//Add a dummy text area to indicate this prop in the annotation doesnt exist
 				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
 				var $textBox = $("<textarea readonly placeholder='NO LABEL: CANNOT EDIT' class='toolbarAnnoTextItem'></textarea>");
 				$labelDiv.append($textBoxLabel);
@@ -649,9 +600,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$textDivContainer.append($labelDiv);
 		$textDivContainer.append($textDiv);
 		$toolDiv.append($textDivContainer);
-		// if (isChars) {
-			// $toolDiv.append($textDiv);
-		// }
 	};
 	
 	//De-Highlights a specific annotation item.
@@ -669,9 +617,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$jsonContainer.animate({
 			scrollTop: pos + elPos - 500
 		}, 10);
-		console.log(div.position().top);
 	};
 	
+	//Adds the export button if we have a dummy canvas to save (this is experimental)
 	self.setDummyState = function () {
 		$exportData.on("click", function () {
 			$(document).trigger("handler_exportAllDataJSON");
