@@ -1692,8 +1692,6 @@
 			var svg = $(str);
 			
 			
-			console.log(svgTags);
-			console.log(svg.get(0));
 			return str;
 		};
 		
@@ -1845,7 +1843,6 @@
 		var updateCompletedPaths = function () {
 			var curInd = 0;
 			for (var i = 0; i < selectedPaths.length; i++) {
-				console.log(selectedPaths[i].path);
 				curInd = selectedPaths[i].compIndex;
 				var p = $.extend(true, {}, selectedPaths[i].path);
 				completedPaths[curInd] = p;

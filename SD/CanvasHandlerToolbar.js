@@ -306,15 +306,12 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		//Update Annotation Data interaction. Responds to a call to update annotation data.
 		$(document).on("toolbar_updateAnnotationData", function () {
-			console.trace("update anno json display");
 			generateJSONDisplay();
 		});
 
 
 		//Annotation Highlight interaction. Responds to a call to highlight an annotation item.
 		$(document).on("toolbar_annoItemHighlight", function (e, annoIndex) {
-			console.log(annoIndex);
-			console.log(annoItemList);
 			annoItemHighlight(annoItemList[annoIndex]);
 		});
 		
@@ -590,7 +587,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$jsonContainer.animate({
 			scrollTop: pos + elPos - 500
 		}, 10);
-		console.log(div.position().top);
 	};
 	
 	//Adds the export button if we have a dummy canvas to save (this is experimental)
