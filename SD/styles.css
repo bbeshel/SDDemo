@@ -95,3 +95,8 @@ body {
 .modeButtonPressed{
 	background-color: #555555;
 }
+
+.unsavedStatus{ 
+   padding: 1px 1px;
+   background-color: #f44336;
+}
