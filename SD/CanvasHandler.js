@@ -2096,6 +2096,10 @@
 		
 		//Saves the changes made to an annotation during edit mode
 		var saveEditChanges = function () {
+			if (selectedPaths.length < 1) {
+				return;
+			}
+			
 			$(document).trigger("handler_canvasIntClear");
 			
 			if (isAnchorSelected) {

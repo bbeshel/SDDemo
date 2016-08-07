@@ -32,26 +32,28 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $toolDiv = $("<div id='toolContainer'></div>");
 	
-	var $modeDiv = $("<div class='permanent toolbarItem'></div>");
-	var $polyButton = $("<button class = 'permanent modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
-	var $rectButton = $("<button class ='permanent modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
+	var $modeDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
+	var $polyButton = $("<button class = 'permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
+	var $rectButton = $("<button class ='permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
 	//var $circButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
-	var $editButton = $("<button class = 'permanent modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
+	var $editButton = $("<button class = 'permanent toolbarAnnoTextItem modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
 	//var $newUndoButton = $ ("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_restore_page_black_24px.svg'/></button>");
 	
 	var $saveStatusImage = $("<div id='saveStatusImage' class = 'permanent toolbarItem'>Save Status:<img src = 'ic_done_black_24px.svg'/></div>");
 	
-	var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
+	// var $buttonEdit = $("<button class='buttonEdit'>EDIT</button>");
 	
 	
-	var $snapZoneSlider = $("<input id='snapZoneSlider' class='toolbarItem' type='range' min='1' max='26' step='5' value='10'/>");	
-	var $snapZoneLabel = $("<p class = 'permament' style='text-align:center;'>Snap Zone</p>");
+	var $snapZoneSliderContainer = $("<span class='toolbarAnnoTextItem'></span>");
+	var $snapZoneSlider = $("<input id='snapZoneSlider' class='permanent' type='range' min='1' max='26' step='5' value='10'/>");	
+	var $snapZoneLabel = $("<p class = 'permanent toolbarAnnoTextItem' style='text-align:center;'>Snap Zone</p>");
 	
-	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class='permanent toolbarItem' type = 'range' min='1' max='8' step='1' value='1'/>");
-	var $lineWidthLabel = $("<p class = 'permanent' style='text-align:center;'>Line Width</p>");
+	var $lineWidthSliderContainer = $("<span class='toolbarAnnoTextItem'></span>");
+	var $lineWidthSlider = $("<input id= 'lineWidthSlider' class=' permanent' type = 'range' min='1' max='8' step='1' value='1'/>");
+	var $lineWidthLabel = $("<p class = 'permanent toolbarAnnoTextItem' style='text-align:center;'>Line Width</p>");
 	
-	var $lineColorLabel = $("<p style = 'text-align:center;'>Line Colors</p>");
+	var $lineColorLabel = $("<p class = 'permanent' style = 'text-align:center;'>Line Colors</p>");
 	var $redColorButton = $("<button    class = 'permanent redColorButton' style= 'padding: 2px 9px';>Red</button>");
 	var $yellowColorButton = $("<button class = 'permanent yellowColorButton' style= 'padding: 2px 9px';>Yellow</button>");
 	var $greenColorButton = $("<button  class = 'permanent greenColorButton' style= 'padding: 2px 9px';>Green</button>");
@@ -65,7 +67,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var colorButtonList = [$redColorButton, $yellowColorButton, $greenColorButton, $blueColorButton, /*$purpleColorButton,*/ $whiteColorButton, $blackColorButton];
 	
 	
-	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarItem'>Save Changes</button>");
+	var $saveEditChanges = $("<button id='saveEditChanges' class='toolbarAnnoTextItem permanent'>Save Changes</button>");
 	
 	var $exportData = $("<button id='exportData' class='permanent toolbarItem'>Export as JSON</button>");
 	
@@ -75,9 +77,17 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	
 	var $saveModal = $("<div id='saveModal' class='modal'><div class='modal-content'><p>Saving...</p></div></div>");
 	
-	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarItem permanent'>Delete selected annotation</button>");
+	var $deleteAnnoButton = $("<button id='deleteAnnoButton' class='toolbarAnnoTextItem permanent'>Delete selected annotation</button>");
 	
-	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarItem permanent'>Select next annotation</button>");
+	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='toolbarAnnoTextItem permanent'>Select next annotation</button>");
+	
+	var $canvIdLabel = $("<p class = 'permanent' style='text-align:center;'>Canvas ID Link</p>");
+	
+	var $annoButtonDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
+	
+	var $sliderLabelDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
+	
+	var $sliderDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
 	
 	this.init = function ($parent) {
 		self.MODE = chandlerParent.MODES[0];
@@ -108,23 +118,39 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		//$modeDiv.append($annoButton);
 		//$modeDiv.append($newUndoButton);
 		$toolDiv.append($modeDiv);
-		//$toolDiv.append($undoButton);
-		//TODO: the text only mode doesnt work, readd when fixed
-		// $toolDiv.append($debugViewCheckbox);
-		$debugViewCheckbox.prop('checked', true);
-		$toolDiv.append($jsonContainer);
-		$toolDiv.append($snapZoneLabel);
-		$toolDiv.append($snapZoneSlider);
-		$toolDiv.append($lineWidthLabel);
-		$toolDiv.append($lineWidthSlider);
+		
+		
+		$annoButtonDiv.append($saveEditChanges);
+		$annoButtonDiv.append($deleteAnnoButton);
+		$annoButtonDiv.append($cycleAnnoButton);
+		$toolDiv.append($annoButtonDiv);
+		
+		
+		$sliderLabelDiv.append($snapZoneLabel);
+		$sliderLabelDiv.append($lineWidthLabel);
+		$toolDiv.append($sliderLabelDiv);
+		
+		$snapZoneSliderContainer.append($snapZoneSlider);
+		$sliderDiv.append($snapZoneSliderContainer);
+		$lineWidthSliderContainer.append($lineWidthSlider);
+		$sliderDiv.append($lineWidthSliderContainer);
+		$toolDiv.append($sliderDiv);
+		
+		
 		$toolDiv.append($lineColorLabel);
 		for (n in colorButtonList){
 			$toolDiv.append(colorButtonList[n]);
 			console.log(colorButtonList[n]);
 		}
+		//$toolDiv.append($undoButton);
+		//TODO: the text only mode doesnt work, readd when fixed
+		// $toolDiv.append($debugViewCheckbox);
+		$debugViewCheckbox.prop('checked', true);
+		$toolDiv.append($jsonContainer);
+		$toolDiv.append($canvIdLabel);
 		$toolDiv.append($canvasIdExpose);
-		$toolDiv.append($deleteAnnoButton);
-		$toolDiv.append($cycleAnnoButton);
+		
+		
 		
 		// $toolDiv.append($saveEditChanges);
 		
@@ -486,7 +512,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		prevMode = self.MODE;
 		self.MODE = mode;
 		$(document).trigger("handler_canvasIntClear");
-		toolbarModeInit();
+		// toolbarModeInit();
 	};
 	
 	
