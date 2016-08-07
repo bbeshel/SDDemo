@@ -73,7 +73,7 @@
 				
 			//Check if the key is an image 
 			if (canvasObject["@type"] === "dctypes:Image") {				
-				//here we are detecting for two different acceptable models for images
+				//Here we are detecting for two different acceptable models for images
 				if (canvasObject.hasOwnProperty("resource")) {
 					handleURL(canvasObject["resource"]["@id"]);
 				} else if (canvasObject.hasOwnProperty("@id")) {
@@ -168,19 +168,6 @@
 			
 		};
 		
-		// self.editAssociatedAnnoText = function (json, prop, text) {
-			// if (typeof json === "string") {
-				// json = JSON.parse(json);
-			// }
-			
-			// var doSearch = function (ob, prop, text) {
-				// if (ob.hasOwnProperty(prop)) {
-					// ob[prop] = text;
-					
-				// }
-			// };
-		// };
-		
 		/*Checks to see if the JSON key-value pair are validChecker
 		* @param objectValue	the value to be checked
 		* @return bool	
@@ -266,7 +253,7 @@
 			}
 		};
 		
-		/*simple check to see if the string is a URL
+		/*Simple check to see if the string is a URL
 		* @param text	string to be checked
 		* @return bool
 		*/

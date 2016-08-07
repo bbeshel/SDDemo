@@ -92,11 +92,11 @@ body {
     width: 80%; /* Could be more or less, depending on screen size */
 }
 
-.modeButtonPressed{
+.modeButtonPressed{ /*Used for the mode buttons to show the user is currently in the mode that has the darkened button*/
 	background-color: #555555;
 }
 
-.unsavedStatus{ 
+.unsavedStatus{ /*Used for the background of the saveStatusImage to show it is unsaved*/
    padding: 1px 1px;
    background-color: #f44336;
 }
