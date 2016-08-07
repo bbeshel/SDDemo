@@ -172,6 +172,8 @@
 				unsavedChangesDisplay();
 				$(document).trigger("toolbar_saveChangesComplete");
 				$(document).trigger("handler_enableUserInteraction");
+				annoDeleteQueue = [];
+				
 			},
 			curIndex : -1,
 		};
@@ -773,7 +775,7 @@
 					return;
 				}
 				switch(e.which) {
-					case 9: //space
+					case 9: //tab
 						e.preventDefault();
 						tool[tool.MODE].tab(e);
 					break;
@@ -2065,7 +2067,7 @@
 			if (CONFIGS.feedback.strokeStyle === "black"){
 				CONFIGS.feedback.strokeStyle = "red";
 			}
-			switch(color){
+			switch(lineColor){
 				case "red":
 					CONFIGS.anno.strokeStyle = "red";
 					CONFIGS.feedback.strokeStyle = "black";
@@ -2148,14 +2150,14 @@
 			
 			selectedPaths[selectedPathsCurIndex].path.needsUpdate = true;
 			
+			updateCompletedPaths();
 			redrawCompletedPaths();
 			
-			for (var i = 0; i < selectedPaths.length; i++) {
-				drawPath(selectedPaths[i].path);
-			}
-			drawPath(selectedPath);
+			// for (var i = 0; i < selectedPaths.length; i++) {
+				// drawPath(selectedPaths[i].path);
+			// }
+			// drawPath(selectedPath);
 			
-			updateCompletedPaths();
 			updateJSON();
 			// $(document).trigger("handler_resetAnnoUpdateStatus");
 			$(document).trigger("toolbar_annoItemsDeHighlight");
@@ -2189,23 +2191,24 @@
 		//Redraw all the shapes that were not edited
 		var redrawCompletedPaths = function () {
 			$(document).trigger("handler_canvasAnoClear");
-			var skipPath = false;
+			// var skipPath = false;
 			for (var i = 0; i < completedPaths.length; i++) {
-				for (var j = 0; j < selectedPaths.length; j++) {
-					if (selectedPaths[j].compIndex === i) {
-						skipPath = true;
-					}
-				}
-				if (!skipPath) {
-					var currentLineWidth = CONFIGS.anno.lineWidth;
-					var currentStrokeStyle = CONFIGS.anno.strokeStyle;
-					//CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
-					//CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
-					drawPath(completedPaths[i]);
-					//CONFIGS.anno.lineWidth = currentLineWidth;
-					//CONFIGS.anno.strokeStyle = currentStrokeStyle;
-				}
-				skipPath = false;
+				// for (var j = 0; j < selectedPaths.length; j++) {
+					// if (selectedPaths[j].compIndex === i) {
+						// skipPath = true;
+					// }
+				// }
+				// if (!skipPath) {
+					// var currentLineWidth = CONFIGS.anno.lineWidth;
+					// var currentStrokeStyle = CONFIGS.anno.strokeStyle;
+					// //CONFIGS.anno.lineWidth = completedPaths[i].lineWidth;
+					// //CONFIGS.anno.strokeStyle = completedPaths[i].path.strokeStyle;
+					// drawPath(completedPaths[i]);
+					// //CONFIGS.anno.lineWidth = currentLineWidth;
+					// //CONFIGS.anno.strokeStyle = currentStrokeStyle;
+				// }
+				// skipPath = false;
+				drawPath(completedPaths[i]);
 			}
 			// $(document).trigger("toolbar_updateAnnotationData");
 		};
@@ -2479,6 +2482,13 @@
 				updateCompletedPaths();
 				
 				$(document).trigger("handler_canvasIntClear");
+				
+				// for (var i = 0; i < selectedPaths.length; i++) {
+					// drawPath(selectedPaths[i].path);
+				// }
+				// drawPath(selectedPath);
+			
+				
 				redrawCompletedPaths();
 				$(document).trigger("toolbar_updateAnnotationData");
 				
