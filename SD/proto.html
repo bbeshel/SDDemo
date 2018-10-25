@@ -53,16 +53,17 @@
                 The area below accepts a JSON canvas and will render this canvas to the screen. Use an @id for sc:Canvas or sc:AnnotationList.
             </p>
             <p>
-                Once you have decided what to put into the area, click 'Load Parsed Canvas Handler' to have the input created into the transcription interface. Alternatively, you can click 'Load Test Canvas Handler' to start a dummy experiment.
+                Place the raw JSON into the box below and click 'Load Parsed Canvas Handler' to have the input created into the transcription interface. Alternatively, you can click 'Load Test Canvas Handler' to start a new canvas experiment.
             </p>
         </div>
         
         <div class="hideme" id="setTranscriptionObjectArea">
             <textarea id="transcriptionText" placeholder="Enter a IIIF canvas"></textarea>
         </div>
-        <button id="loadCanvasHandlerTestBtn" class="hideme" onclick="loadTestCanvasHandler();"> Load Test Canvas Handler</button> 
-        <button id="loadCanvasHandlerBtn" class="hideme" onclick="loadCanvasHandler();"> Load Parsed Canvas Handler</button> 
-	<!-- 	<p> {
+        <button id="loadCanvasHandlerTestBtn" class="hideme" onclick="loadTestCanvasHandler();">Start new canvas</button> 
+        <button id="loadCanvasHandlerBtn" class="hideme" onclick="loadCanvasHandler();"> Load canvas from data</button> 
+        <p>You can use the JSON below to use as en example for loading an external canvas.</p>
+	 	<p> {
                 "@id":"http://canvas.org/canvas/1",
                 "@type" : "sc:Canvas",
                 "label" : "100r",
@@ -102,7 +103,7 @@
                 }],
                 "otherContent":[]
             }
-			</p> -->
+			</p>
         <!-- notice we do not use an actual <canvas> element here.  You will need that for SVG to work -->
         <div id="transcriptionCanvas"> 
             <img class="transcriptionImage"/>
@@ -410,10 +411,14 @@
 		//trick the canvas into thinking we are done parsing
 		//used for dummy canvas testing purposes only
 		$(document).trigger("parser_allDataRetrieved");
+        $('#loadCanvasHandlerTestBtn').addClass('disabled');
+        $('#loadCanvasHandlerBtn').addClass('disabled');
 	};
 	
 	function loadCanvasHandler() {
 		var chandler = new CanvasHandler();
 		chandler.init($("#transcriptionText").val());
+        $('#loadCanvasHandlerTestBtn').addClass('disabled');
+        $('#loadCanvasHandlerBtn').addClass('disabled');
 	};
 </script>

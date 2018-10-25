@@ -50,6 +50,7 @@
 			}
 			//is an anno that is not an image
 			if (canvasObject["@type"] === "oa:Annotation" && canvasObject.hasOwnProperty("resource") && canvasObject["resource"]["@type"] !== "dctypes:Image") {
+				$(document).trigger("parser_annoDataRetrieved");
 				annoJSONList.push(canvasObject);
 			} else if (canvasObject["@type"] === "oa:Annotation") {
 				if (canvasObject.hasOwnProperty("@id")) {
@@ -81,11 +82,18 @@
 			}
 			
 			//Run through the rest of this object or array
-			for (n in canvasObject){
-				//Recurse if it is an object or an array
-				if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
-					self.basicCheck(canvasObject[n]);				
-				} 	
+			if (Array.isArray(canvasObject)) {
+				for (let item of canvasObject) {
+					self.basicCheck(item);
+				}
+			}
+			else {
+				for (n in canvasObject){
+					//Recurse if it is an object or an array
+					if (Array.isArray(canvasObject[n]) || typeof(canvasObject[n]) === 'object'){
+						self.basicCheck(canvasObject[n]);				
+					} 	
+				}
 			}
 			recurseIter--;
 		};

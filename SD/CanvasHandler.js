@@ -160,9 +160,9 @@
 				function () {
 					updateNewAnnotationList();
 				},
-				function () {
-					updateLocalNewAnnotationListJSON();
-				},
+				// function () {
+					// updateLocalNewAnnotationListJSON();
+				// },
 				function () {
 					updateCanvas();
 				}
@@ -688,6 +688,7 @@
 				var ind = getCompletedPathsIndex(path);
 				completedPaths[ind][prop] = comment;
 				completedPaths[ind].needsUpdate = true;
+				updateJSON();
 			}); 
 			
 			//Prevent user interaction
@@ -784,6 +785,10 @@
 		*/
 		var onAllDataRetrieved = function () {
 			
+			// Originally was used to allow exporting of data on a NEW canvas,
+			// but since we can't export to server anymore, just always allow 'export'
+			tool.setDummyState();
+
 			if (receivedDataCheck.canvas) {
 				//Enumerate canvasData in CONFIGS and setup new canvas dimensions
 				var canv = parser.getCanvasJSON();
@@ -823,8 +828,6 @@
 			} 
 			
 			if (receivedDataCheck.fail()) {
-				console.log("ENTERING DUMMY CANVAS STATE");
-				tool.setDummyState();
 			}
 			
 			$("#CHwrapper").css('display', '');
@@ -894,7 +897,6 @@
 			intCanvas.height = hgt;
 			$canvasContainer.width(wid);
 			$canvasContainer.height(hgt);
-			$("#toolContainer").height(hgt);
 		};
 		
 		/*
@@ -1172,78 +1174,80 @@
 		*/
 		var execAjax = function (request, jsonType) {
 				ajaxWaitState = true;
-				$.ajax({
-					url: request.url,
-					type: "POST",
-					dataType: "json",
-					crossDomain: true,
-				})
-				.done(function (data) {
-					//If a type was specified
-					if (jsonType != null) {
-						switch (jsonType) {
-							//Most of these just add the @id the server responds with when creating a new annotation
-							case "anno": 
-								if(data.hasOwnProperty("@id")) {
-									completedPaths[request.index].annoId = data["@id"];
-								}
-							break;
-							case "annoLocal":
-								if (request.index != null) {
-									completedPaths[request.index].JSON = JSON.stringify(data);
-									completedPaths[request.index].needsLocalUpdate = false;
-								}
-							break;
-							case "annoList":
-								if (data.hasOwnProperty("@id")) {
-									CONFIGS.annotationLists[request.index]["@id"] = data["@id"];
-								}
-							break;
-							case "annoListLocal":
-								if (request.index != null) {
-									CONFIGS.annotationLists[request.index] = data;
-								}
-							break;
-							case "newAnnoList":
-								if (data.hasOwnProperty("@id")) {
-									CONFIGS.newAnnotationList["@id"] = data["@id"];
-								}
-							break;
-							case "newAnnoListLocal":
-								//Copies the newly created annotationList and adds it to the current list
-								CONFIGS.newAnnotationList = data;
-								var temp = $.extend(true, {}, CONFIGS.newAnnotationList);
-								CONFIGS.annotationLists.push(temp);
-								CONFIGS.newAnnotationList = null;
-							break;
-							case "canvas":
-								CONFIGS.canvasId = data["@id"];
-								//Update the @id of this canvas to the toolbar
-								$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
-							break;
-							default:
-						}
-					}
-					ajaxWaitState = false;
-					//As long as there are still queued requests, keep calling this, otherwise continue updateProcedure
-					if (ajaxRequestQueue.length > 0) {
-						execAjax(ajaxRequestQueue.shift(), jsonType);
-					} else {
-						updateProcedure.run();
-					}
-				})
-				.fail(function (xhr, status, errorThrown) {
-					console.log(status);
-					console.log(errorThrown);
-					$(document).trigger("toolbar_saveChangesComplete");
-					$(document).trigger("handler_enableUserInteraction");
-					alert("There was a problem updating to the server. Changes have not been saved. "
-						+ "Error status:" + status 
-						+ "Error message:" + errorThrown
-					);
-					//End the update procedure after an error so we dont freeze the interaction forever
-					updateProcedure.end();
-				});
+				console.log(request);
+				$(document).trigger('toolbar_addRequestDisplay', [request]);
+				// $.ajax({
+				// 	url: request.url,
+				// 	type: "POST",
+				// 	dataType: "json",
+				// 	crossDomain: true,
+				// })
+				// .done(function (data) {
+				// 	//If a type was specified
+				// 	if (jsonType != null) {
+				// 		switch (jsonType) {
+				// 			//Most of these just add the @id the server responds with when creating a new annotation
+				// 			case "anno": 
+				// 				if(data.hasOwnProperty("@id")) {
+				// 					completedPaths[request.index].annoId = data["@id"];
+				// 				}
+				// 			break;
+				// 			case "annoLocal":
+				// 				if (request.index != null) {
+				// 					completedPaths[request.index].JSON = JSON.stringify(data);
+				// 					completedPaths[request.index].needsLocalUpdate = false;
+				// 				}
+				// 			break;
+				// 			case "annoList":
+				// 				if (data.hasOwnProperty("@id")) {
+				// 					CONFIGS.annotationLists[request.index]["@id"] = data["@id"];
+				// 				}
+				// 			break;
+				// 			case "annoListLocal":
+				// 				if (request.index != null) {
+				// 					CONFIGS.annotationLists[request.index] = data;
+				// 				}
+				// 			break;
+				// 			case "newAnnoList":
+				// 				if (data.hasOwnProperty("@id")) {
+				// 					CONFIGS.newAnnotationList["@id"] = data["@id"];
+				// 				}
+				// 			break;
+				// 			case "newAnnoListLocal":
+				// 				//Copies the newly created annotationList and adds it to the current list
+				// 				CONFIGS.newAnnotationList = data;
+				// 				var temp = $.extend(true, {}, CONFIGS.newAnnotationList);
+				// 				CONFIGS.annotationLists.push(temp);
+				// 				CONFIGS.newAnnotationList = null;
+				// 			break;
+				// 			case "canvas":
+				// 				CONFIGS.canvasId = data["@id"];
+				// 				//Update the @id of this canvas to the toolbar
+				// 				$(document).trigger("toolbar_exposeCanvasId", [CONFIGS.canvasId]);
+				// 			break;
+				// 			default:
+				// 		}
+				// 	}
+				// })
+				// .fail(function (xhr, status, errorThrown) {
+				// 	console.log(status);
+				// 	console.log(errorThrown);
+				// 	$(document).trigger("toolbar_saveChangesComplete");
+				// 	$(document).trigger("handler_enableUserInteraction");
+				// 	alert("There was a problem updating to the server. Changes have not been saved. "
+				// 		+ "Error status:" + status 
+				// 		+ "Error message:" + errorThrown
+				// 	);
+				// 	//End the update procedure after an error so we dont freeze the interaction forever
+				// 	updateProcedure.end();
+				// });
+				ajaxWaitState = false;
+				//As long as there are still queued requests, keep calling this, otherwise continue updateProcedure
+				if (ajaxRequestQueue.length > 0) {
+					execAjax(ajaxRequestQueue.shift(), jsonType);
+				} else {
+					updateProcedure.run();
+				}
 			 
 		};
 		
@@ -1257,9 +1261,9 @@
 					params = stripExcessJSONData(completedPaths[i].JSON);
 					//if we already have an @id, then we can just update the JSON. otherwise, create a new one on the server
 					if (completedPaths[i].annoId == null) {
-						posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
+						posturl = "http://<server>/annotationstore/anno/saveNewAnnotation.action?content=\n" + encodeURIComponent(params);
 					} else {
-						posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+						posturl = "http://<server>/annotationstore/anno/updateAnnotation.action?content=\n" + encodeURIComponent(params);
 					}
 					ajaxRequestQueue.push({ url : posturl, index : i });
 					
@@ -1268,14 +1272,14 @@
 				//If the current anchorList was marked to be deleted, delete it on the server
 				} else if (completedPaths[i].markedForDelete) {
 					params = JSON.stringify({ "@id" : completedPaths[i].annoId });
-					posturl = "http://165.134.241.141:80/annotationstore/anno/deleteAnnotationByAtID.action?content=" + encodeURIComponent(params);
+					posturl = "http://<server>/annotationstore/anno/deleteAnnotationByAtID.action?content=\n" + encodeURIComponent(params);
 					ajaxRequestQueue.push({ url : posturl, index : i });
 				}
 			}
 			
 			for (var i = 0; i < annoDeleteQueue.length; i++) {
 				params = JSON.stringify({ "@id" : annoDeleteQueue[i] });
-				posturl = "http://165.134.241.141:80/annotationstore/anno/deleteAnnotationByAtID.action?content=" + encodeURIComponent(params);
+				posturl = "http://<server>/annotationstore/anno/deleteAnnotationByAtID.action?content=\n" + encodeURIComponent(params);
 				ajaxRequestQueue.push({ url : posturl});
 			}
 			
@@ -1321,7 +1325,7 @@
 			}
 		
 			var params = stripExcessJSONData(CONFIGS.annotationLists[curAnoListIndex]);
-			posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+			posturl = "http://<server>/annotationstore/anno/updateAnnotation.action?content=\n" + encodeURIComponent(params);
 			ajaxRequestQueue.push({ url : posturl, index : curAnoListIndex});
 
 		};
@@ -1402,7 +1406,7 @@
 			//CONFIGS.newAnnotationList then becomes null
 			if (CONFIGS.newAnnotationList != null && CONFIGS.newAnnotationList["resources"].length > 0) {
 				params = JSON.stringify(CONFIGS.newAnnotationList);
-				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
+				posturl = "http://<server>/annotationstore/anno/saveNewAnnotation.action?content=\n" + encodeURIComponent(params);
 				execAjax({ url : posturl } , "newAnnoList");
 			} else {
 				updateProcedure.run();
@@ -1441,13 +1445,11 @@
 			
 			params = stripExcessJSONData(CONFIGS.canvasData);
 			if (!CONFIGS.canvasData.hasOwnProperty("@id") || CONFIGS.canvasData["@id"] == null) {
-				posturl = "http://165.134.241.141:80/annotationstore/anno/saveNewAnnotation.action?content=" + encodeURIComponent(params);
+				posturl = "http://<server>/annotationstore/anno/saveNewAnnotation.action?content=\n" + encodeURIComponent(params);
 			} else {
-				posturl = "http://165.134.241.141:80/annotationstore/anno/updateAnnotation.action?content=" + encodeURIComponent(params);
+				posturl = "http://<server>/annotationstore/anno/updateAnnotation.action?content=\n" + encodeURIComponent(params);
 			}
-			//this seems unnecessary, but let's keep to the previous data flow
-			ajaxRequestQueue.push({url : posturl });
-			execAjax(ajaxRequestQueue.shift(), "canvas");
+			execAjax({url : posturl}, "canvas");
 			
 		};
 		

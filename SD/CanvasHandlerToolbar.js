@@ -20,7 +20,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Option that allows the user to view details about the JSON objects that are created.
 	//Currently unused; used for debug
 	self.OPTIONS = {
-		jsonView : false
+		jsonView : true
 	};
 	
 	//Keeps track of the current "mode".
@@ -33,7 +33,9 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $jsonDisplay = $("<textarea readonly id='jsonToolbarDisplay' class='toolbarItem'></textarea>");
 	
 	//Lists all JSON items.
-	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
+	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";	
+	//Lists all JSON items.
+	var requestItemString = "<div class='requestDisplayItem'></div>";
 	
 	//Tracks previous MODE defined in CanvasHandler
 	var prevMode = "";	
@@ -48,7 +50,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var jsonItemString = "<textarea readonly class='toolbarAnnoItem permanent'></textarea>";
 	
 	//container to hold JSON in debug, or annotations in normal run mode
-	var $jsonContainer = $("<div class='toolbarItem permanent' id='jsonDisplayContainer'></div>");
+	var $jsonContainer = $("<div style='position: relative' class='toolbarItem permanent' id='jsonDisplayContainer'></div>");
+		
+	//container to hold JSON in debug, or annotations in normal run mode
+	var $requestDisplayContainer = $("<div style='position: relative' class='toolbarItem permanent' id='requestDisplayContainer'></div>");
 	
 	//Div for all elements for the "tools" the user will be using and seeing to help them create annotations.
 	var $toolDiv = $("<div id='toolContainer'></div>");
@@ -136,7 +141,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	$deleteAnnoButton.addClass("disabled");
 	
 	//Button that allows the user to cycle through previously created annotations.
-	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='buttonItem permanent' class = 'annoButtons' class = 'disabled'>Select next annotation</button>");
+	var $cycleAnnoButton = $("<button id='cycleAnnoButton' class='buttonItem permanent' class = 'annoButtons' class = 'disabled'>Next overlapping shape</button>");
 	$cycleAnnoButton.addClass("disabled");
 	
 	//Displays the link of the canvas ID.
@@ -163,6 +168,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		
 		$("body").append($saveModal);
 		
+
 		//Adds the toolDiv to the canvas, then begins to add the various tools the toolDiv requires to the toolDiv.
 		$parent.append($toolDiv);
 		$toolDiv.append($saveStatusImage);
@@ -203,10 +209,13 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		}
 		$toolDiv.append($indicatorColorDiv);
 		
-		$debugViewCheckbox.prop('checked', true);
+		// $debugViewCheckbox.prop('checked', true);
+		// $toolDiv.append($debugViewCheckbox);
 		$toolDiv.append($jsonContainer);
 		$toolDiv.append($canvIdLabel);
 		$toolDiv.append($canvasIdExpose);
+		$toolDiv.append($exportData);
+		$toolDiv.append($requestDisplayContainer);
 		
 		//Mode button iteractions. Each button will change the mode of the toolbar, 
 		//displaying this by undarkening the previous mode button and darkening the current one.
@@ -364,6 +373,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		$(document).on("toolbar_saveChangesComplete", function () {
 			$saveModal.removeClass("modal-active");
 		});
+
+		$(document).on('toolbar_addRequestDisplay', function (e, request) {
+			addRequestDisplay(request);
+		});
 		
 	};
 	
@@ -380,58 +393,55 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		var div;
 		//Takes the paths of the completed annotation.
 		var annos = chandlerParent.getCompletedPaths();
-		if (self.OPTIONS.jsonView) {
-			//Debug mode is on,  display attributes of the JSON objects.
-			for (var i = 0; i < annos.length; i++) {
-				if (annos[i].JSON != null) {
-					div = $(jsonItemString);
-					var x = annos[i].JSON;
-					//Make the text safe to put in html
-					x = x.replace(/\\"/g, '"');
-					div.html(x);
-					console.log(annos[i].JSON);
-					div.path = annos[i];
-					setupAnnoEvents(div);
-					annoItemList.push(div);
-					$jsonContainer.append(div);
+		//Allows the user to view comment attributes of the annotations
+		for (var i = 0; i < annos.length; i++) {
+			if (annos[i].JSON != null) {
+				div = $(jsonItemString);
+				var x = annos[i].JSON;
+				//Make the text safe to put in html
+				x = x.replace(/\\"/g, '"');
+				//Get an object with text that came from annotation, if any
+				var comments = parser.getAssociatedAnnoText(annos[i].JSON);
+				
+				//Create the string with the comments
+				var hts = "";
+				if (comments["label"] != null) {
+					hts += "LABEL: " + comments["label"];
+					hts += "\n";
 				}
-			}
-		} else {
-			//Allows the user to view comment attributes of the annotations
-			for (var i = 0; i < annos.length; i++) {
-				if (annos[i].JSON != null) {
-					div = $(jsonItemString);
-					var x = annos[i].JSON;
-					//Make the text safe to put in html
-					x = x.replace(/\\"/g, '"');
-					//Get an object with text that came from annotation, if any
-					var comments = parser.getAssociatedAnnoText(annos[i].JSON);
-					
-					//Create the string with the comments
-					var hts = "";
-					if (comments["label"] != null) {
-						hts += "LABEL: " + comments["label"];
-						hts += "\n";
-					}
-					if (comments["cnt:chars"] != null) {
-						hts += "CNT:CHARS: " + comments["cnt:chars"];
-						hts += "\n";
-					}
-					if (comments["chars"] != null) {
-						hts += "CHARS: " + comments["chars"];
-						hts += "\n";
-					}
-					if (hts.length < 1) {
-						hts = "(No text)";
-					}
-					div.html(hts);
-					//Helps keep track of the comments on the annotation for events
-					div.editable = comments;
-					div.path = annos[i];
-					setupAnnoEvents(div);
-					annoItemList.push(div);
-					$jsonContainer.append(div);
+				if (comments["cnt:chars"] != null) {
+					hts += "CNT:CHARS: " + comments["cnt:chars"];
+					hts += "\n";
 				}
+				if (comments["chars"] != null) {
+					hts += "CHARS: " + comments["chars"];
+					hts += "\n";
+				}
+				if (hts.length < 1) {
+					hts = "(No text)";
+				}
+				if (self.OPTIONS.jsonView) {
+					//Debug mode is on,  display attributes of the JSON objects.
+					// for (var i = 0; i < annos.length; i++) {
+						// if (annos[i].JSON != null) {
+							// div = $(jsonItemString);
+							// var x = annos[i].JSON;
+							// //Make the text safe to put in html
+							// x = x.replace(/\\"/g, '"');
+							// div.html(x);
+							hts += ('\n' + x);
+							console.log(annos[i].JSON);
+						
+						// }
+					// }
+				}
+				div.html(hts);
+				//Helps keep track of the comments on the annotation for events
+				div.editable = comments;
+				div.path = annos[i];
+				setupAnnoEvents(div);
+				annoItemList.push(div);
+				$jsonContainer.append(div);
 			}
 		}
 	};
@@ -441,26 +451,6 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var updateJSONDisplay = function () {
 		var div;
 		var annos = chandlerParent.getCompletedPaths();
-		if (self.OPTIONS.jsonView) {
-		//Debug mode is on, JSON objects will be displayed.
-			for (var i = 0; i < annos.length; i++) {
-				if (annos[i].JSON != null && annos[i].needsUpdate) {
-					div = $(jsonItemString);
-					var x = annos[i].JSON;
-					x = x.replace(/\\"/g, '"');
-					div.html(x);
-					console.log(annos[i].JSON);
-					div.path = annos[i];
-					setupAnnoEvents(div);
-					if (i < annoItemList.length) {
-						annoItemList[i] = div;
-					} else {
-						annoItemList.push(div);
-						$jsonContainer.append(div);
-					}
-				}
-			}
-		} else {
 			//Update any annotations in toolbar that need update
 			for (var i = 0; i < annos.length; i++) {
 				if (annos[i].JSON != null && annos[i].needsUpdate) {
@@ -496,6 +486,10 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					if (hts.length < 1) {
 						hts = "(No text)";
 					}
+					if (self.OPTIONS.jsonView) {
+						hts += ('\n' + x);
+						console.log(annos[i].JSON);
+					}
 					div.html(hts);
 					div.editable = comments;
 					div.path = annos[i];
@@ -518,12 +512,21 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 					annoItemList.splice(i, 1);
 				}
 			}
-		}
 		//Reset all the handler events for all annotation items in toolbar
-		//Needed to do this because events somehow kept getting lost on some divs.
+		//Simplest way to update pre-existing annotation events and new annotation events
 		for (var i = 0; i < annoItemList.length; i++) {
 			setupAnnoEvents(annoItemList[i]);
 		}
+	};
+
+	var addRequestDisplay = function (request) {
+		let div = $(requestItemString);
+		div.html(request.url);
+		$requestDisplayContainer.append(div);
+	};
+
+	var clearRequestDisplay = function () {
+		$requestDisplayContainer.empty();
 	};
 	
 	
@@ -563,6 +566,7 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	//Sets up the canvas for user interaction with previously created annotations, 
 	//if the user preforms an action that would require interaction with these annotations.
 	var setupAnnoEvents = function (div) {
+		div.unbind();
 		div.on("click", function () {
 			$(document).trigger("toolbar_annoItemClick", [div.path]);
 			annoItemHighlight(div);
@@ -580,11 +584,14 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 			if (div.editable[n] != null) {
 				//If there are characters, add some.
 				isChars = true;
-				var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
-				var $textBox = $("<textarea class='annoTextArea'>" + div.editable[n] + "</textarea>");
+				let propName = n;
+				// var $textBoxLabel = $("<span class='toolbarAnnoTextItem'>" + n + ": </span>");
+				var $textBoxLabel = $(`<span class='toolbarAnnoTextItem'> ${n}: </span>`);
+				var $textBox = $(`<textarea id='textArea${n.split(':')[0]}' class='annoTextArea'> ${div.editable[n]} </textarea>`);
 				//When clicking off the textarea, we update the text to the completedPaths
-				$textBox.on("focusout", function () {
-					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, n, $textBox.val()]);
+				$textBox.on("focusout", function (event) {
+					console.log(this); 
+					$(document).trigger("toolbar_annoItemCharsUpdate", [div.path, propName, $(this).val()]);
 					updateJSONDisplay();
 				});
 				$labelDiv.append($textBoxLabel);
@@ -616,19 +623,18 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 		var pos = $jsonContainer.scrollTop();
 		var elPos = div.position().top;
 		$jsonContainer.animate({
-			scrollTop: pos + elPos - 500
-		}, 10);
+			scrollTop: pos + elPos
+		}, 300);
 	};
 	
 	//Adds the export button if we have a dummy canvas to save (this is experimental)
 	self.setDummyState = function () {
 		$exportData.on("click", function () {
-			$(document).trigger("handler_exportAllDataJSON");
+			clearRequestDisplay();
 			$saveModal.addClass("modal-active");
 			$(document).trigger("handler_preventUserInteraction");
+			$(document).trigger("handler_exportAllDataJSON");
 		});
-		
-		$toolDiv.append($exportData);
 	};
 	
 	
