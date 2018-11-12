@@ -62,16 +62,16 @@ var CanvasHandlerToolbar = function (parentContext, parserContext) {
 	var $modeDiv = $("<div class='permanent annoCharsBoxContainer toolbarItem'></div>");
 	
 	//Button that allows the user to create polygonal shaped annotations.
-	var $polyButton = $("<button class = 'permanent buttonItem modeButton' style='padding: 1px 39px';><img src = 'ic_star_border_black_24px.svg'/></button>");
+	var $polyButton = $("<button class = 'permanent buttonItem modeButton'>Polygon</button>");
 	
 	//Button that allows the user to create rectalinear shaped annotations.
-	var $rectButton = $("<button class ='permanent buttonItem modeButton' style='padding: 1px 39px';><img src='ic_check_box_outline_blank_black_24px.svg'/></button>");
+	var $rectButton = $("<button class ='permanent buttonItem modeButton'>Rectalinear</button>");
 	
 	//Button that allows the user to create circular shaped annotations (currently not functional).
 	//var $circButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src='ic_radio_button_unchecked_black_24px.svg'/></button>");
 	
 	//Button that allows the user to edit previously created annotations.
-	var $editButton = $("<button class = 'permanent buttonItem modeButton' style='padding: 1px 39px';><img src = 'ic_create_black_24px.svg'/></button>");
+	var $editButton = $("<button class = 'permanent buttonItem modeButton'>Edit</button>");
 	
 	//Button that allows the user to write comments on a previously created annotation (currently not functional).
 	//var $annoButton = $("<button class = 'permanent modeButton' style='padding: 1px 6px';><img src = 'ic_message_black_24px.svg'/></button>");
